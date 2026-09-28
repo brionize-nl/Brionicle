@@ -36,6 +36,7 @@ const ISS = {
     },
 
     addMarker(pos, onClick) {
+        this.lastPos = pos;
         if (this.marker) {
             this.marker.setLatLng([pos.lat, pos.lon]);
         } else {
@@ -53,7 +54,7 @@ const ISS = {
                 className: 'camera-tooltip'
             });
             if (onClick) {
-                this.marker.on('click', () => onClick(pos));
+                this.marker.on('click', () => onClick(this.lastPos));
             }
             this.marker.addTo(this.map);
         }

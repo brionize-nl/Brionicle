@@ -8,16 +8,20 @@ const App = {
         this.initMap();
         this.initPanel();
         this.initLayers();
+        this.initRoadtrip();
 
         Cameras.init(this.map);
         Earthquakes.init(this.map);
         ISS.init(this.map);
         Pins.init(this.map);
+        UFO.init(this.map);
+        Roadtrip.init(this.map);
 
         await Promise.all([
             this.loadCameras(),
             Pins.loadAll(),
-            this.loadEarthquakes()
+            this.loadEarthquakes(),
+            UFO.load()
         ]);
 
         this.showActiveLayers();
@@ -39,6 +43,7 @@ const App = {
         }).addTo(this.map);
 
         this.map.on('click', (e) => {
+            if (Roadtrip.handleMapClick(e.latlng)) return;
             if (!this.panelOpen) {
                 this.showLocationInfo(e.latlng.lat, e.latlng.lng);
             }
@@ -68,9 +73,11 @@ const App = {
             'layer-cameras': (on) => on ? Cameras.show(this.cameras, this.map, (c) => this.onCameraClick(c)) : Cameras.hide(),
             'layer-earthquakes': (on) => on ? Earthquakes.show((q) => this.onQuakeClick(q)) : Earthquakes.hide(),
             'layer-iss': (on) => on ? ISS.show((p) => this.onISSClick(p)) : ISS.hide(),
+            'layer-ufo': (on) => on ? UFO.show((u) => this.onUFOClick(u)) : UFO.hide(),
             'layer-festivals': (on) => on ? Pins.showLayer('festivals', (p) => this.onPinClick(p)) : Pins.hideLayer('festivals'),
             'layer-monuments': (on) => on ? Pins.showLayer('monuments', (p) => this.onPinClick(p)) : Pins.hideLayer('monuments'),
-            'layer-telescopes': (on) => on ? Pins.showLayer('telescopes', (p) => this.onPinClick(p)) : Pins.hideLayer('telescopes')
+            'layer-telescopes': (on) => on ? Pins.showLayer('telescopes', (p) => this.onPinClick(p)) : Pins.hideLayer('telescopes'),
+            'layer-roadtrip': (on) => on ? Roadtrip.show() : Roadtrip.hide()
         };
 
         Object.entries(layerHandlers).forEach(([id, handler]) => {
@@ -79,10 +86,21 @@ const App = {
         });
     },
 
+    initRoadtrip() {
+        document.getElementById('rt-start').addEventListener('click', () => Roadtrip.startPicking('start'));
+        document.getElementById('rt-end').addEventListener('click', () => Roadtrip.startPicking('end'));
+        document.getElementById('rt-clear').addEventListener('click', () => Roadtrip.clear());
+        document.getElementById('rt-close').addEventListener('click', () => {
+            document.getElementById('layer-roadtrip').checked = false;
+            Roadtrip.hide();
+        });
+    },
+
     showActiveLayers() {
         if (this.isChecked('layer-cameras')) Cameras.show(this.cameras, this.map, (c) => this.onCameraClick(c));
         if (this.isChecked('layer-earthquakes')) Earthquakes.show((q) => this.onQuakeClick(q));
         if (this.isChecked('layer-iss')) ISS.show((p) => this.onISSClick(p));
+        if (this.isChecked('layer-ufo')) UFO.show((u) => this.onUFOClick(u));
         if (this.isChecked('layer-festivals')) Pins.showLayer('festivals', (p) => this.onPinClick(p));
         if (this.isChecked('layer-monuments')) Pins.showLayer('monuments', (p) => this.onPinClick(p));
         if (this.isChecked('layer-telescopes')) Pins.showLayer('telescopes', (p) => this.onPinClick(p));
@@ -102,8 +120,6 @@ const App = {
         const count = await Earthquakes.load();
         console.log(`${count} aardbevingen geladen`);
     },
-
-    // --- Click handlers ---
 
     onCameraClick(cam) {
         this.currentCamera = cam;
@@ -136,6 +152,16 @@ const App = {
 
         const sections = this.clearSections();
         sections.camera.innerHTML = ISS.renderHTML(pos);
+    },
+
+    onUFOClick(sighting) {
+        this.openPanel();
+        this.setPanelHeader(sighting.city, 'UFO Melding');
+
+        const sections = this.clearSections();
+        sections.camera.innerHTML = UFO.renderHTML(sighting);
+        this.loadWeather(sighting.lat, sighting.lon, sections.weather);
+        this.loadWikipedia(sighting.lat, sighting.lon);
     },
 
     onPinClick(item) {
@@ -172,8 +198,6 @@ const App = {
         this.loadRadio(lat, lon);
     },
 
-    // --- Panel helpers ---
-
     setPanelHeader(title, subtitle) {
         document.getElementById('panel-title').textContent = title;
         document.getElementById('panel-subtitle').textContent = subtitle || '';
@@ -196,8 +220,6 @@ const App = {
 
         return { weather, sun, camera, extra, wiki, radio };
     },
-
-    // --- Data loaders ---
 
     loadWeather(lat, lon, el) {
         if (!el || !this.isChecked('layer-weather')) return;

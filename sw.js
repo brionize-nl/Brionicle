@@ -1,4 +1,4 @@
-const CACHE_NAME = 'brionicle-v2';
+const CACHE_NAME = 'brionicle-v3';
 const STATIC_ASSETS = [
     '/',
     '/index.html',
@@ -12,10 +12,13 @@ const STATIC_ASSETS = [
     '/js/iss.js',
     '/js/aurora.js',
     '/js/pins.js',
+    '/js/ufo.js',
+    '/js/roadtrip.js',
     '/manifest.json',
     '/data/festivals.json',
     '/data/monuments.json',
-    '/data/telescopes.json'
+    '/data/telescopes.json',
+    '/data/ufo-sightings.json'
 ];
 
 self.addEventListener('install', (event) => {

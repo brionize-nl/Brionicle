@@ -365,6 +365,57 @@ html, body {
     border-top-color: var(--border) !important;
 }
 
+/* UFO marker */
+
+.ufo-marker {
+    background: none !important;
+    border: none !important;
+}
+
+/* Roadtrip panel */
+
+.roadtrip-panel {
+    position: fixed;
+    bottom: 16px;
+    left: 16px;
+    z-index: 999;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    width: 260px;
+}
+
+.roadtrip-panel.hidden {
+    display: none;
+}
+
+.rt-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.rt-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.rt-point {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 8px;
+    background: var(--bg-section);
+    border-radius: 4px;
+}
+
+.rt-point:hover {
+    background: var(--bg);
+}
+
 /* Mobile */
 
 @media (max-width: 600px) {
@@ -396,5 +447,11 @@ html, body {
     .layers-toggle {
         top: 10px;
         left: 10px;
+    }
+
+    .roadtrip-panel {
+        bottom: 10px;
+        left: 10px;
+        width: calc(100% - 20px);
     }
 }
