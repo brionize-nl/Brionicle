@@ -275,11 +275,20 @@ html, body {
     display: none;
 }
 
+.layers-group {
+    padding: 4px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.layers-group:last-child {
+    border-bottom: none;
+}
+
 .layers-menu label {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 6px 0;
+    padding: 5px 0;
     font-size: 13px;
     cursor: pointer;
     color: var(--text);
@@ -287,6 +296,27 @@ html, body {
 
 .layers-menu input[type="checkbox"] {
     accent-color: var(--accent);
+}
+
+.iss-marker {
+    background: none !important;
+    border: none !important;
+}
+
+.iss-icon {
+    font-size: 24px;
+    filter: drop-shadow(0 0 6px rgba(79, 195, 247, 0.8));
+    animation: iss-pulse 2s ease-in-out infinite;
+}
+
+@keyframes iss-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.15); }
+}
+
+.radio-station:hover {
+    background: var(--bg) !important;
+    border-radius: 4px;
 }
 
 /* Leaflet overrides */

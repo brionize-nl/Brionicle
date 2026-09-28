@@ -8,7 +8,19 @@ const App = {
         this.initMap();
         this.initPanel();
         this.initLayers();
-        await this.loadCameras();
+
+        Cameras.init(this.map);
+        Earthquakes.init(this.map);
+        ISS.init(this.map);
+        Pins.init(this.map);
+
+        await Promise.all([
+            this.loadCameras(),
+            Pins.loadAll(),
+            this.loadEarthquakes()
+        ]);
+
+        this.showActiveLayers();
         this.registerServiceWorker();
     },
 
@@ -26,8 +38,6 @@ const App = {
             maxZoom: 19
         }).addTo(this.map);
 
-        Cameras.init(this.map);
-
         this.map.on('click', (e) => {
             if (!this.panelOpen) {
                 this.showLocationInfo(e.latlng.lat, e.latlng.lng);
@@ -36,9 +46,7 @@ const App = {
     },
 
     initPanel() {
-        const closeBtn = document.getElementById('panel-close');
-        closeBtn.addEventListener('click', () => this.closePanel());
-
+        document.getElementById('panel-close').addEventListener('click', () => this.closePanel());
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') this.closePanel();
         });
@@ -53,87 +61,154 @@ const App = {
             layersMenu.classList.toggle('hidden');
         });
 
-        document.addEventListener('click', () => {
-            layersMenu.classList.add('hidden');
-        });
+        document.addEventListener('click', () => layersMenu.classList.add('hidden'));
+        layersMenu.addEventListener('click', (e) => e.stopPropagation());
 
-        document.getElementById('layer-cameras').addEventListener('change', (e) => {
-            if (e.target.checked) {
-                Cameras.show(this.cameras, this.map, (cam) => this.onCameraClick(cam));
-            } else {
-                Cameras.hide();
-            }
+        const layerHandlers = {
+            'layer-cameras': (on) => on ? Cameras.show(this.cameras, this.map, (c) => this.onCameraClick(c)) : Cameras.hide(),
+            'layer-earthquakes': (on) => on ? Earthquakes.show((q) => this.onQuakeClick(q)) : Earthquakes.hide(),
+            'layer-iss': (on) => on ? ISS.show((p) => this.onISSClick(p)) : ISS.hide(),
+            'layer-festivals': (on) => on ? Pins.showLayer('festivals', (p) => this.onPinClick(p)) : Pins.hideLayer('festivals'),
+            'layer-monuments': (on) => on ? Pins.showLayer('monuments', (p) => this.onPinClick(p)) : Pins.hideLayer('monuments'),
+            'layer-telescopes': (on) => on ? Pins.showLayer('telescopes', (p) => this.onPinClick(p)) : Pins.hideLayer('telescopes')
+        };
+
+        Object.entries(layerHandlers).forEach(([id, handler]) => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('change', (e) => handler(e.target.checked));
         });
+    },
+
+    showActiveLayers() {
+        if (this.isChecked('layer-cameras')) Cameras.show(this.cameras, this.map, (c) => this.onCameraClick(c));
+        if (this.isChecked('layer-earthquakes')) Earthquakes.show((q) => this.onQuakeClick(q));
+        if (this.isChecked('layer-iss')) ISS.show((p) => this.onISSClick(p));
+        if (this.isChecked('layer-festivals')) Pins.showLayer('festivals', (p) => this.onPinClick(p));
+        if (this.isChecked('layer-monuments')) Pins.showLayer('monuments', (p) => this.onPinClick(p));
+        if (this.isChecked('layer-telescopes')) Pins.showLayer('telescopes', (p) => this.onPinClick(p));
+    },
+
+    isChecked(id) {
+        const el = document.getElementById(id);
+        return el && el.checked;
     },
 
     async loadCameras() {
         this.cameras = await Cameras.loadRWS();
-        if (document.getElementById('layer-cameras').checked) {
-            Cameras.show(this.cameras, this.map, (cam) => this.onCameraClick(cam));
-        }
         console.log(`${this.cameras.length} camera's geladen`);
     },
 
+    async loadEarthquakes() {
+        const count = await Earthquakes.load();
+        console.log(`${count} aardbevingen geladen`);
+    },
+
+    // --- Click handlers ---
+
     onCameraClick(cam) {
         this.currentCamera = cam;
-        const title = document.getElementById('panel-title');
-        const subtitle = document.getElementById('panel-subtitle');
-        const weatherEl = document.getElementById('panel-weather');
-        const sunEl = document.getElementById('panel-sun');
-        const cameraEl = document.getElementById('camera-container');
-
-        title.textContent = cam.name;
-        subtitle.textContent = [cam.road, cam.source].filter(Boolean).join(' — ');
-
-        weatherEl.innerHTML = '<div class="loading">Weer laden...</div>';
-        sunEl.innerHTML = '';
-        cameraEl.innerHTML = '<div class="loading">Beeld laden...</div>';
-
         this.openPanel();
+        this.setPanelHeader(cam.name, [cam.road, cam.source].filter(Boolean).join(' — '));
 
-        if (document.getElementById('layer-weather').checked) {
-            Weather.fetch(cam.lat, cam.lon)
-                .then(w => { weatherEl.innerHTML = Weather.renderHTML(w); })
-                .catch(() => { weatherEl.innerHTML = '<div class="error">Weer niet beschikbaar</div>'; });
-        } else {
-            weatherEl.innerHTML = '';
-        }
-
-        this.loadSunTimes(cam.lat, cam.lon, sunEl);
+        const sections = this.clearSections();
+        this.loadWeather(cam.lat, cam.lon, sections.weather);
+        this.loadSunTimes(cam.lat, cam.lon, sections.sun);
+        this.loadAurora(cam.lat, sections.extra);
 
         setTimeout(() => {
-            cameraEl.innerHTML = Cameras.renderCamera(cam);
+            sections.camera.innerHTML = Cameras.renderCamera(cam);
         }, 100);
     },
 
-    async showLocationInfo(lat, lon) {
-        const title = document.getElementById('panel-title');
-        const subtitle = document.getElementById('panel-subtitle');
-        const weatherEl = document.getElementById('panel-weather');
-        const sunEl = document.getElementById('panel-sun');
-        const cameraEl = document.getElementById('camera-container');
-
-        title.textContent = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
-        subtitle.textContent = 'Locatie';
-
-        weatherEl.innerHTML = '<div class="loading">Weer laden...</div>';
-        sunEl.innerHTML = '';
-        cameraEl.innerHTML = '';
-
+    onQuakeClick(quake) {
         this.openPanel();
+        this.setPanelHeader(quake.place, 'Aardbeving');
 
-        if (document.getElementById('layer-weather').checked) {
-            Weather.fetch(lat, lon)
-                .then(w => { weatherEl.innerHTML = Weather.renderHTML(w); })
-                .catch(() => { weatherEl.innerHTML = '<div class="error">Weer niet beschikbaar</div>'; });
-        } else {
-            weatherEl.innerHTML = '';
+        const sections = this.clearSections();
+        sections.camera.innerHTML = Earthquakes.renderHTML(quake);
+        this.loadWeather(quake.lat, quake.lon, sections.weather);
+        this.loadSunTimes(quake.lat, quake.lon, sections.sun);
+    },
+
+    onISSClick(pos) {
+        this.openPanel();
+        this.setPanelHeader('International Space Station', 'ISS');
+
+        const sections = this.clearSections();
+        sections.camera.innerHTML = ISS.renderHTML(pos);
+    },
+
+    onPinClick(item) {
+        this.openPanel();
+        const typeLabel = Pins.TYPES[item.type]?.label || item.type;
+        this.setPanelHeader(item.name, `${typeLabel} — ${item.country}`);
+
+        const sections = this.clearSections();
+        sections.camera.innerHTML = Pins.renderHTML(item);
+        this.loadWeather(item.lat, item.lon, sections.weather);
+        this.loadSunTimes(item.lat, item.lon, sections.sun);
+        this.loadAurora(item.lat, sections.extra);
+
+        if (item.youtubeChannel) {
+            const ytSection = document.createElement('div');
+            ytSection.className = 'panel-section';
+            ytSection.innerHTML = Pins.renderYouTube(item);
+            sections.camera.parentElement.appendChild(ytSection);
         }
 
-        this.loadSunTimes(lat, lon, sunEl);
+        this.loadWikipedia(item.lat, item.lon);
+        this.loadRadio(item.lat, item.lon);
+    },
+
+    async showLocationInfo(lat, lon) {
+        this.openPanel();
+        this.setPanelHeader(`${lat.toFixed(4)}, ${lon.toFixed(4)}`, 'Locatie');
+
+        const sections = this.clearSections();
+        this.loadWeather(lat, lon, sections.weather);
+        this.loadSunTimes(lat, lon, sections.sun);
+        this.loadAurora(lat, sections.extra);
+        this.loadWikipedia(lat, lon);
+        this.loadRadio(lat, lon);
+    },
+
+    // --- Panel helpers ---
+
+    setPanelHeader(title, subtitle) {
+        document.getElementById('panel-title').textContent = title;
+        document.getElementById('panel-subtitle').textContent = subtitle || '';
+    },
+
+    clearSections() {
+        const weather = document.getElementById('panel-weather');
+        const sun = document.getElementById('panel-sun');
+        const camera = document.getElementById('camera-container');
+        const extra = document.getElementById('panel-extra');
+        const wiki = document.getElementById('panel-wiki');
+        const radio = document.getElementById('panel-radio');
+
+        weather.innerHTML = '';
+        sun.innerHTML = '';
+        camera.innerHTML = '';
+        if (extra) extra.innerHTML = '';
+        if (wiki) wiki.innerHTML = '';
+        if (radio) radio.innerHTML = '';
+
+        return { weather, sun, camera, extra, wiki, radio };
+    },
+
+    // --- Data loaders ---
+
+    loadWeather(lat, lon, el) {
+        if (!el || !this.isChecked('layer-weather')) return;
+        el.innerHTML = '<div class="loading">Weer laden...</div>';
+        Weather.fetch(lat, lon)
+            .then(w => { el.innerHTML = Weather.renderHTML(w); })
+            .catch(() => { el.innerHTML = ''; });
     },
 
     async loadSunTimes(lat, lon, el) {
+        if (!el) return;
         try {
             const today = new Date().toISOString().split('T')[0];
             const res = await fetch(`https://api.sunrisesunset.io/json?lat=${lat}&lng=${lon}&date=${today}`);
@@ -160,6 +235,38 @@ const App = {
                 `;
             }
         } catch {
+            if (el) el.innerHTML = '';
+        }
+    },
+
+    async loadAurora(lat, el) {
+        if (!el) return;
+        try {
+            const html = await Aurora.renderHTML(lat);
+            el.innerHTML = html;
+        } catch {
+            el.innerHTML = '';
+        }
+    },
+
+    async loadWikipedia(lat, lon) {
+        const el = document.getElementById('panel-wiki');
+        if (!el) return;
+        try {
+            const articles = await Wikipedia.fetch(lat, lon);
+            el.innerHTML = Wikipedia.renderHTML(articles);
+        } catch {
+            el.innerHTML = '';
+        }
+    },
+
+    async loadRadio(lat, lon) {
+        const el = document.getElementById('panel-radio');
+        if (!el) return;
+        try {
+            const stations = await Radio.fetchNearby(lat, lon);
+            el.innerHTML = Radio.renderHTML(stations);
+        } catch {
             el.innerHTML = '';
         }
     },
@@ -174,25 +281,21 @@ const App = {
     },
 
     openPanel() {
-        const panel = document.getElementById('panel');
-        panel.classList.add('open');
+        document.getElementById('panel').classList.add('open');
         this.panelOpen = true;
     },
 
     closePanel() {
-        const panel = document.getElementById('panel');
-        panel.classList.remove('open');
+        document.getElementById('panel').classList.remove('open');
         this.panelOpen = false;
         this.currentCamera = null;
+        Radio.stop();
     },
 
     async registerServiceWorker() {
         if ('serviceWorker' in navigator) {
-            try {
-                await navigator.serviceWorker.register('sw.js');
-            } catch (e) {
-                console.warn('Service Worker registratie mislukt:', e);
-            }
+            try { await navigator.serviceWorker.register('sw.js'); }
+            catch (e) { console.warn('SW registratie mislukt:', e); }
         }
     }
 };
