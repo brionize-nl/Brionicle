@@ -31,11 +31,14 @@ Laatst bijgewerkt: 2026-09-28
 
 | Stap | Status |
 |------|--------|
-| PWA basis (index.html, manifest, service worker) | Nog niet gestart |
-| Leaflet 2D kaart laden | Nog niet gestart |
-| 1 camerabron integreren (TrafficVision JPEG) | Nog niet gestart |
-| Open-Meteo weer bij klik op locatie | Nog niet gestart |
-| Basis pin UI (klik → info paneel) | Nog niet gestart |
+| PWA basis (index.html, manifest, service worker) | Afgerond |
+| Leaflet 2D kaart laden | Afgerond |
+| 1 camerabron integreren (Rijkswaterstaat API + fallback) | Afgerond |
+| Open-Meteo weer bij klik op locatie | Afgerond |
+| Golden hour / zonsopgang-ondergang bij klik | Afgerond |
+| Basis pin UI (klik → info paneel) | Afgerond |
+| Lagen toggle UI | Afgerond |
+| PWA iconen | Afgerond |
 | Deploy naar Cloudflare Pages | Nog niet gestart |
 | Testen op desktop + mobiel | Nog niet gestart |
 
