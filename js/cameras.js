@@ -93,26 +93,56 @@ const Cameras = {
     },
 
     renderCamera(cam) {
-        const parts = [];
+        const containerId = `cam-img-${cam.id}`;
+        const fallbackHtml = cam.rwsPageUrl
+            ? `<a href="${cam.rwsPageUrl}" target="_blank" rel="noopener"
+                  style="display:flex;align-items:center;gap:8px;padding:14px 16px;
+                         background:var(--accent);color:#fff;text-decoration:none;
+                         border-radius:8px;font-size:14px;font-weight:600;
+                         margin:8px 0;justify-content:center;">
+                   &#9654; Bekijk live camera op RWS
+               </a>`
+            : '';
 
+        setTimeout(() => {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            const img = new Image();
+            img.onload = () => {
+                container.innerHTML = `
+                    <img src="/api/camera-image?id=${cam.id}" alt="${cam.name}"
+                         style="width:100%;border-radius:6px;background:#000;">
+                    <div style="display:flex;gap:8px;margin-top:6px;align-items:center;">
+                        <button onclick="Cameras.refreshImage('${cam.id}')"
+                                style="background:var(--bg);border:1px solid var(--border);
+                                       color:var(--text-dim);padding:4px 10px;border-radius:4px;
+                                       font-size:11px;cursor:pointer;">&#8635; Ververs</button>
+                        ${cam.rwsPageUrl ? `<a href="${cam.rwsPageUrl}" target="_blank" rel="noopener"
+                            style="font-size:11px;color:var(--accent);text-decoration:none;">
+                            Live stream op RWS &rarr;</a>` : ''}
+                    </div>`;
+            };
+            img.onerror = () => {
+                container.innerHTML = fallbackHtml;
+            };
+            img.src = `/api/camera-image?id=${cam.id}`;
+        }, 50);
+
+        let html = '';
         if (cam.road) {
-            parts.push(`<p style="font-size:13px;color:var(--text);margin-bottom:6px;">Snelweg <b>${cam.road}</b>${cam.near ? ' bij ' + cam.near : ''}</p>`);
+            html += `<p style="font-size:13px;color:var(--text);margin-bottom:6px;">Snelweg <b>${cam.road}</b>${cam.near ? ' bij ' + cam.near : ''}</p>`;
         }
+        html += `<div id="${containerId}" style="min-height:40px;"><div class="loading">Camera laden...</div></div>`;
+        html += `<p style="font-size:11px;color:var(--text-dim);margin-top:4px;">Bron: ${cam.source || 'Rijkswaterstaat'}</p>`;
+        return html;
+    },
 
-        if (cam.rwsPageUrl) {
-            parts.push(`
-                <a href="${cam.rwsPageUrl}" target="_blank" rel="noopener"
-                   style="display:flex;align-items:center;gap:8px;padding:14px 16px;
-                          background:var(--accent);color:#fff;text-decoration:none;
-                          border-radius:8px;font-size:14px;font-weight:600;
-                          margin:8px 0;justify-content:center;">
-                    &#9654; Bekijk live camera
-                </a>
-            `);
+    refreshImage(camId) {
+        const container = document.getElementById(`cam-img-${camId}`);
+        if (!container) return;
+        const img = container.querySelector('img');
+        if (img) {
+            img.src = `/api/camera-image?id=${camId}&t=${Date.now()}`;
         }
-
-        parts.push(`<p style="font-size:11px;color:var(--text-dim);margin-top:4px;">Bron: ${cam.source || 'Rijkswaterstaat'} &mdash; opent op rwsverkeersinfo.nl</p>`);
-
-        return parts.join('');
     }
 };

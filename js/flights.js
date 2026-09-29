@@ -46,12 +46,14 @@ const Flights = {
             const distNm = Math.min(Math.round(distKm / 1.852), 250);
 
             const url = `/api/flights?lat=${center.lat.toFixed(4)}&lon=${center.lng.toFixed(4)}&dist=${distNm}`;
+            console.log('Flights: ophalen', url);
             const res = await fetch(url);
             if (!res.ok) {
-                console.warn('Flights API:', res.status);
+                console.warn('Flights API status:', res.status, await res.text().catch(() => ''));
                 return;
             }
             const data = await res.json();
+            console.log('Flights:', data.ac?.length || 0, 'vliegtuigen gevonden');
             if (!data.ac || !data.ac.length) return;
 
             this.layerGroup.clearLayers();

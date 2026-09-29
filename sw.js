@@ -1,4 +1,4 @@
-const CACHE_NAME = 'brionicle-v8';
+const CACHE_NAME = 'brionicle-v9';
 const STATIC_ASSETS = [
     '/',
     '/index.html',
