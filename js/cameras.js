@@ -11,17 +11,23 @@ const Cameras = {
             const res = await fetch('https://api.rwsverkeersinfo.nl/api/cameras');
             if (!res.ok) throw new Error(`RWS API status ${res.status}`);
             const cameras = await res.json();
-            return cameras.map(cam => ({
-                id: String(cam.id),
-                name: cam.location_description || cam.locationDescription || 'Camera',
-                road: cam.road || cam.roadDesignation || '',
-                lat: parseFloat(cam.latitude),
-                lon: parseFloat(cam.longitude),
-                streamUrl: cam.stream_url || cam.streamUrl || null,
-                staticUrl: cam.static_url || cam.staticUrl || null,
-                type: 'embed',
-                source: 'Rijkswaterstaat'
-            })).filter(c => !isNaN(c.lat) && !isNaN(c.lon));
+            return cameras.map(cam => {
+                const imageUrl = cam.image_url || cam.imageUrl || cam.snapshot_url || cam.snapshotUrl || null;
+                const streamUrl = cam.stream_url || cam.streamUrl || null;
+                const staticUrl = cam.static_url || cam.staticUrl || null;
+                return {
+                    id: String(cam.id),
+                    name: cam.location_description || cam.locationDescription || 'Camera',
+                    road: cam.road || cam.roadDesignation || '',
+                    lat: parseFloat(cam.latitude),
+                    lon: parseFloat(cam.longitude),
+                    imageUrl,
+                    streamUrl,
+                    staticUrl,
+                    type: imageUrl ? 'image' : 'embed',
+                    source: 'Rijkswaterstaat'
+                };
+            }).filter(c => !isNaN(c.lat) && !isNaN(c.lon));
         } catch (e) {
             console.warn('RWS API niet bereikbaar, fallback wordt geladen:', e.message);
             return this.getFallbackCameras();
@@ -83,6 +89,17 @@ const Cameras = {
     },
 
     renderCamera(cam) {
+        if (cam.imageUrl) {
+            const cacheBust = Date.now();
+            return `
+                <img src="${cam.imageUrl}?t=${cacheBust}"
+                     alt="${cam.name}"
+                     onerror="this.parentElement.innerHTML='<div class=\\'error\\'>Beeld kon niet worden geladen</div>'"
+                     loading="lazy">
+                <button class="camera-refresh" onclick="App.refreshCamera()" title="Ververs beeld">&#8635;</button>
+            `;
+        }
+
         if (cam.streamUrl) {
             return `
                 <iframe src="${cam.streamUrl}"
@@ -93,17 +110,7 @@ const Cameras = {
                         loading="lazy"
                         style="border-radius: 6px; background: #000;">
                 </iframe>
-                <button class="camera-refresh" onclick="App.refreshCamera()" title="Ververs beeld">&#8635;</button>
-            `;
-        }
-
-        if (cam.imageUrl) {
-            const cacheBust = Date.now();
-            return `
-                <img src="${cam.imageUrl}?t=${cacheBust}"
-                     alt="${cam.name}"
-                     onerror="this.parentElement.innerHTML='<div class=\\'error\\'>Beeld kon niet worden geladen</div>'"
-                     loading="lazy">
+                <p style="font-size:11px;color:var(--text-dim);margin-top:6px;">Stream laadt niet? <a href="${cam.staticUrl || cam.streamUrl}" target="_blank" rel="noopener" style="color:var(--accent);">Open direct &rarr;</a></p>
                 <button class="camera-refresh" onclick="App.refreshCamera()" title="Ververs beeld">&#8635;</button>
             `;
         }

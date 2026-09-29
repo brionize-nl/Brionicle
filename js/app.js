@@ -287,7 +287,7 @@ const App = {
         if (!el) return;
         try {
             const today = new Date().toISOString().split('T')[0];
-            const res = await fetch(`https://api.sunrisesunset.io/json?lat=${lat}&lng=${lon}&date=${today}`);
+            const res = await fetch(`https://api.sunrisesunset.io/json?lat=${lat}&lng=${lon}&date=${today}&time_format=24`);
             if (!res.ok) throw new Error();
             const data = await res.json();
             if (data.status === 'OK') {
