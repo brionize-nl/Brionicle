@@ -31,6 +31,7 @@ const Cameras = {
                     lat: parseFloat(cam.latitude || cam.lat),
                     lon: parseFloat(cam.longitude || cam.lon),
                     rwsPageUrl: rwsPageUrl,
+                    embedUrl: cam.stream_url || cam.streamUrl || '',
                     source: 'Rijkswaterstaat'
                 };
             }).filter(c => !isNaN(c.lat) && !isNaN(c.lon));
@@ -178,56 +179,26 @@ const Cameras = {
         this.stopLive();
         this.destroyHls();
 
-        if (typeof Hls === 'undefined' || !Hls.isSupported()) {
-            this.requestDesktop(cam, 'start_live');
-            this.startLive(cam, containerId);
+        const embedUrl = cam.embedUrl;
+        if (!embedUrl) {
+            this.trySnapshot(cam, containerId);
             return;
         }
 
         container.innerHTML = `
             <div style="position:relative;border-radius:6px;overflow:hidden;background:#000;">
-                <video id="cam-hls-${cam.id}" autoplay muted playsinline
-                    style="width:100%;border-radius:6px;background:#000;display:block;"></video>
-                <span id="cam-label-${cam.id}" style="position:absolute;top:8px;right:8px;
+                <iframe id="cam-embed-${cam.id}" src="${embedUrl}"
+                    style="width:100%;height:300px;border:none;display:block;"
+                    allow="autoplay; encrypted-media"
+                    allowfullscreen></iframe>
+                <span style="position:absolute;top:8px;right:8px;
                     background:rgba(0,0,0,0.6);color:#4caf50;padding:2px 8px;border-radius:10px;
                     font-size:11px;font-weight:600;display:flex;align-items:center;gap:4px;">
                     <span style="width:6px;height:6px;background:#4caf50;border-radius:50%;display:inline-block;animation:blink 1s infinite;"></span>
                     LIVE STREAM
                 </span>
-                <div id="cam-loading-${cam.id}" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#fff;font-size:13px;">
-                    Stream laden...</div>
             </div>
             ${this.renderButtons(cam, 'stream')}`;
-
-        const video = document.getElementById(`cam-hls-${cam.id}`);
-        const loadingEl = document.getElementById(`cam-loading-${cam.id}`);
-        const streamUrl = `/api/camera-stream?id=${cam.id}`;
-
-        const hls = new Hls({
-            enableWorker: true,
-            lowLatencyMode: true,
-            maxBufferLength: 5,
-            maxMaxBufferLength: 10,
-            liveSyncDurationCount: 2,
-            liveMaxLatencyDurationCount: 5,
-        });
-        this._hls = hls;
-
-        hls.loadSource(streamUrl);
-        hls.attachMedia(video);
-
-        hls.on(Hls.Events.MANIFEST_PARSED, () => {
-            if (loadingEl) loadingEl.style.display = 'none';
-            video.play().catch(() => {});
-        });
-
-        hls.on(Hls.Events.ERROR, (event, data) => {
-            if (data.fatal) {
-                hls.destroy();
-                this._hls = null;
-                this.trySnapshot(cam, containerId);
-            }
-        });
     },
 
     destroyHls() {
