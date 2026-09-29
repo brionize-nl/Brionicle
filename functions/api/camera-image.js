@@ -19,73 +19,64 @@ export async function onRequestGet(context) {
         });
     }
 
-    const imagePatterns = [
-        `https://api.rwsverkeersinfo.nl/api/cameras/${id}/image`,
-        `https://api.rwsverkeersinfo.nl/api/cameras/${id}/snapshot`,
-        `https://www.rwsverkeersinfo.nl/api/cameras/${id}/image`,
-    ];
-
-    for (const imageUrl of imagePatterns) {
-        try {
-            const res = await fetch(imageUrl, {
-                headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Brionicle/1.0)' }
-            });
-            const ct = res.headers.get('content-type') || '';
-            if (res.ok && ct.startsWith('image/')) {
-                return new Response(res.body, {
-                    headers: {
-                        ...CORS_HEADERS,
-                        'Content-Type': ct,
-                        'Cache-Control': 'public, max-age=3'
-                    }
-                });
-            }
-        } catch {}
-    }
-
     try {
         const apiRes = await fetch('https://api.rwsverkeersinfo.nl/api/cameras', {
             headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Brionicle/1.0)' }
         });
-        if (!apiRes.ok) throw new Error('API down');
+        if (!apiRes.ok) throw new Error('RWS API ' + apiRes.status);
         const cameras = await apiRes.json();
         const cam = cameras.find(c => String(c.id) === id);
 
-        if (cam) {
-            const road = cam.road || '';
-            const near = cam.near || '';
-            const slug = (road + '-' + near).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
-            const pageUrl = `https://www.rwsverkeersinfo.nl/cameras/${id}/${slug}`;
-
-            const pageRes = await fetch(pageUrl, {
-                headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
+        if (!cam) {
+            return new Response(JSON.stringify({ error: 'Camera not found' }), {
+                status: 404,
+                headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }
             });
-            if (pageRes.ok) {
-                const html = await pageRes.text();
-                const imgMatches = [
-                    ...html.matchAll(/src=["'](https?:\/\/[^"']*?\.(?:jpg|jpeg|png|webp)(?:\?[^"']*)?)['"]/gi),
-                    ...html.matchAll(/url\(["']?(https?:\/\/[^)"']*?\.(?:jpg|jpeg|png|webp)(?:\?[^)"']*)?)["']?\)/gi),
-                    ...html.matchAll(/"(https?:\/\/[^"]*?(?:image|snapshot|camera|webcam)[^"]*?)"/gi)
-                ];
+        }
 
-                for (const match of imgMatches) {
-                    const imgUrl = match[1];
-                    if (imgUrl.includes('logo') || imgUrl.includes('icon') || imgUrl.includes('favicon')) continue;
-                    try {
-                        const imgRes = await fetch(imgUrl, {
-                            headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Brionicle/1.0)' }
-                        });
-                        const ct2 = imgRes.headers.get('content-type') || '';
-                        if (imgRes.ok && ct2.startsWith('image/')) {
-                            return new Response(imgRes.body, {
-                                headers: {
-                                    ...CORS_HEADERS,
-                                    'Content-Type': ct2,
-                                    'Cache-Control': 'public, max-age=3'
-                                }
-                            });
+        const staticUrl = cam.static_url || cam.staticUrl;
+        if (staticUrl && staticUrl.includes('stream.inmoves.nl')) {
+            const imgRes = await fetch(staticUrl, {
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (compatible; Brionicle/1.0)',
+                    'Referer': 'https://www.rwsverkeersinfo.nl/'
+                }
+            });
+            const ct = imgRes.headers.get('content-type') || '';
+            if (imgRes.ok && ct.startsWith('image/')) {
+                const body = await imgRes.arrayBuffer();
+                if (body.byteLength > 2000) {
+                    return new Response(body, {
+                        headers: {
+                            ...CORS_HEADERS,
+                            'Content-Type': ct,
+                            'Cache-Control': 'public, max-age=3'
                         }
-                    } catch {}
+                    });
+                }
+            }
+        }
+
+        const streamUrl = cam.stream_url || cam.streamUrl;
+        if (streamUrl && streamUrl.includes('stream.inmoves.nl')) {
+            const baseUrl = streamUrl.replace(/\/embed\/?$/, '');
+            const imgRes = await fetch(baseUrl, {
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (compatible; Brionicle/1.0)',
+                    'Referer': 'https://www.rwsverkeersinfo.nl/'
+                }
+            });
+            const ct = imgRes.headers.get('content-type') || '';
+            if (imgRes.ok && ct.startsWith('image/')) {
+                const body = await imgRes.arrayBuffer();
+                if (body.byteLength > 2000) {
+                    return new Response(body, {
+                        headers: {
+                            ...CORS_HEADERS,
+                            'Content-Type': ct,
+                            'Cache-Control': 'public, max-age=3'
+                        }
+                    });
                 }
             }
         }
