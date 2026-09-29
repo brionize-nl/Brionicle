@@ -1,6 +1,7 @@
 const Cameras = {
     markers: [],
     layerGroup: null,
+    hlsPlayer: null,
 
     init(map) {
         this.layerGroup = L.layerGroup().addTo(map);
@@ -92,17 +93,119 @@ const Cameras = {
         this.markers = [];
     },
 
+    destroyHls() {
+        if (this.hlsPlayer) {
+            this.hlsPlayer.destroy();
+            this.hlsPlayer = null;
+        }
+    },
+
     renderCamera(cam) {
         const containerId = `cam-img-${cam.id}`;
+        this.destroyHls();
 
-        const streamEmbedHtml = cam.streamUrl
-            ? `<iframe src="${cam.streamUrl}" style="width:100%;aspect-ratio:16/9;border:none;border-radius:6px;background:#000;" allowfullscreen></iframe>
-               <div style="display:flex;gap:8px;margin-top:6px;align-items:center;">
-                   ${cam.rwsPageUrl ? `<a href="${cam.rwsPageUrl}" target="_blank" rel="noopener"
-                       style="font-size:11px;color:var(--accent);text-decoration:none;">
-                       Volledig scherm op RWS &rarr;</a>` : ''}
-               </div>`
-            : (cam.rwsPageUrl
+        setTimeout(() => {
+            this.tryStream(cam, containerId);
+        }, 50);
+
+        let html = '';
+        if (cam.road) {
+            html += `<p style="font-size:13px;color:var(--text);margin-bottom:6px;">Snelweg <b>${cam.road}</b>${cam.near ? ' bij ' + cam.near : ''}</p>`;
+        }
+        html += `<div id="${containerId}" style="min-height:40px;"><div class="loading">Live stream laden...</div></div>`;
+        html += `<p style="font-size:11px;color:var(--text-dim);margin-top:4px;">Bron: ${cam.source || 'Rijkswaterstaat'}</p>`;
+        return html;
+    },
+
+    async tryStream(cam, containerId) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+
+        try {
+            const hlsUrl = `/api/camera-stream?id=${cam.id}`;
+            const res = await fetch(hlsUrl);
+            const ct = res.headers.get('content-type') || '';
+
+            if (res.ok && ct.includes('mpegurl')) {
+                this.showHlsPlayer(cam, containerId, hlsUrl);
+                return;
+            }
+        } catch {}
+
+        this.tryIframe(cam, containerId);
+    },
+
+    showHlsPlayer(cam, containerId, hlsUrl) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+
+        const videoId = `cam-video-${cam.id}`;
+        container.innerHTML = `
+            <video id="${videoId}" style="width:100%;border-radius:6px;background:#000;" autoplay muted playsinline></video>
+            ${this.renderButtons(cam, 'hls')}`;
+
+        const video = document.getElementById(videoId);
+        if (!video) return;
+
+        if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            video.src = hlsUrl;
+            video.play().catch(() => {});
+        } else if (window.Hls && Hls.isSupported()) {
+            this.destroyHls();
+            const hls = new Hls({ liveDurationInfinity: true, lowLatencyMode: true });
+            hls.loadSource(hlsUrl);
+            hls.attachMedia(video);
+            hls.on(Hls.Events.ERROR, () => {
+                hls.destroy();
+                this.tryIframe(cam, containerId);
+            });
+            this.hlsPlayer = hls;
+        } else {
+            this.tryIframe(cam, containerId);
+        }
+    },
+
+    tryIframe(cam, containerId) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+
+        if (!cam.streamUrl) {
+            this.trySnapshot(cam, containerId);
+            return;
+        }
+
+        container.innerHTML = `
+            <iframe id="cam-iframe-${cam.id}" src="${cam.streamUrl}"
+                    style="width:100%;aspect-ratio:16/9;border:none;border-radius:6px;background:#000;"
+                    allowfullscreen></iframe>
+            ${this.renderButtons(cam, 'iframe')}`;
+
+        const iframe = document.getElementById(`cam-iframe-${cam.id}`);
+        if (iframe) {
+            iframe.onerror = () => this.trySnapshot(cam, containerId);
+            setTimeout(() => {
+                try {
+                    if (iframe.contentDocument === null && iframe.contentWindow === null) {
+                        this.trySnapshot(cam, containerId);
+                    }
+                } catch {}
+            }, 5000);
+        }
+    },
+
+    trySnapshot(cam, containerId) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+
+        const img = new Image();
+        img.onload = () => {
+            container.innerHTML = `
+                <img src="/api/camera-image?id=${cam.id}" alt="${cam.name}"
+                     style="width:100%;border-radius:6px;background:#000;">
+                ${this.renderButtons(cam, 'snapshot')}`;
+        };
+        img.onerror = () => {
+            container.innerHTML = cam.rwsPageUrl
                 ? `<a href="${cam.rwsPageUrl}" target="_blank" rel="noopener"
                       style="display:flex;align-items:center;gap:8px;padding:14px 16px;
                              background:var(--accent);color:#fff;text-decoration:none;
@@ -110,81 +213,41 @@ const Cameras = {
                              margin:8px 0;justify-content:center;">
                        &#9654; Bekijk live camera op RWS
                    </a>`
-                : '');
+                : '<p style="color:var(--text-dim);font-size:12px;">Camera niet beschikbaar</p>';
+        };
+        img.src = `/api/camera-image?id=${cam.id}`;
+    },
 
-        setTimeout(() => {
-            const container = document.getElementById(containerId);
-            if (!container) return;
-            const img = new Image();
-            img.onload = () => {
-                container.innerHTML = `
-                    <img src="/api/camera-image?id=${cam.id}" alt="${cam.name}"
-                         style="width:100%;border-radius:6px;background:#000;">
-                    <div style="display:flex;gap:8px;margin-top:6px;align-items:center;flex-wrap:wrap;">
-                        <button onclick="Cameras.refreshImage('${cam.id}')"
-                                style="background:var(--bg);border:1px solid var(--border);
-                                       color:var(--text-dim);padding:4px 10px;border-radius:4px;
-                                       font-size:11px;cursor:pointer;">&#8635; Ververs</button>
-                        <button onclick="Cameras.showStream('${cam.id}')"
-                                style="background:var(--bg);border:1px solid var(--border);
-                                       color:var(--text-dim);padding:4px 10px;border-radius:4px;
-                                       font-size:11px;cursor:pointer;">&#9654; Live stream</button>
-                        ${cam.rwsPageUrl ? `<a href="${cam.rwsPageUrl}" target="_blank" rel="noopener"
-                            style="font-size:11px;color:var(--accent);text-decoration:none;">
-                            RWS &rarr;</a>` : ''}
-                    </div>`;
-            };
-            img.onerror = () => {
-                container.innerHTML = streamEmbedHtml;
-            };
-            img.src = `/api/camera-image?id=${cam.id}`;
-        }, 50);
+    renderButtons(cam, active) {
+        const btn = (label, mode, icon) => {
+            const isActive = active === mode;
+            const style = isActive
+                ? 'background:var(--accent);border:1px solid var(--accent);color:#fff;'
+                : 'background:var(--bg);border:1px solid var(--border);color:var(--text-dim);';
+            return `<button onclick="Cameras.switchMode('${cam.id}','${mode}')"
+                        style="${style}padding:4px 10px;border-radius:4px;font-size:11px;cursor:pointer;">${icon} ${label}</button>`;
+        };
 
-        let html = '';
-        if (cam.road) {
-            html += `<p style="font-size:13px;color:var(--text);margin-bottom:6px;">Snelweg <b>${cam.road}</b>${cam.near ? ' bij ' + cam.near : ''}</p>`;
+        return `<div style="display:flex;gap:6px;margin-top:6px;align-items:center;flex-wrap:wrap;">
+            ${btn('Live', 'iframe', '&#9654;')}
+            ${btn('Snapshot', 'snapshot', '&#128247;')}
+            ${cam.rwsPageUrl ? `<a href="${cam.rwsPageUrl}" target="_blank" rel="noopener"
+                style="font-size:11px;color:var(--accent);text-decoration:none;margin-left:auto;">
+                Volledig scherm &rarr;</a>` : ''}
+        </div>`;
+    },
+
+    switchMode(camId, mode) {
+        const cam = App.cameras.find(c => c.id === camId);
+        if (!cam) return;
+        const containerId = `cam-img-${camId}`;
+        this.destroyHls();
+
+        if (mode === 'iframe') {
+            this.tryIframe(cam, containerId);
+        } else if (mode === 'snapshot') {
+            this.trySnapshot(cam, containerId);
         }
-        html += `<div id="${containerId}" style="min-height:40px;"><div class="loading">Camera laden...</div></div>`;
-        html += `<p style="font-size:11px;color:var(--text-dim);margin-top:4px;">Bron: ${cam.source || 'Rijkswaterstaat'}</p>`;
-        return html;
-    },
-
-    showStream(camId) {
-        const cam = App.cameras.find(c => c.id === camId);
-        if (!cam || !cam.streamUrl) return;
-        const container = document.getElementById(`cam-img-${camId}`);
-        if (!container) return;
-        container.innerHTML = `
-            <iframe src="${cam.streamUrl}" style="width:100%;aspect-ratio:16/9;border:none;border-radius:6px;background:#000;" allowfullscreen></iframe>
-            <div style="display:flex;gap:8px;margin-top:6px;align-items:center;">
-                <button onclick="Cameras.showSnapshot('${camId}')"
-                        style="background:var(--bg);border:1px solid var(--border);
-                               color:var(--text-dim);padding:4px 10px;border-radius:4px;
-                               font-size:11px;cursor:pointer;">&#128247; Snapshot</button>
-                ${cam.rwsPageUrl ? `<a href="${cam.rwsPageUrl}" target="_blank" rel="noopener"
-                    style="font-size:11px;color:var(--accent);text-decoration:none;">
-                    Volledig scherm op RWS &rarr;</a>` : ''}
-            </div>`;
-    },
-
-    showSnapshot(camId) {
-        const container = document.getElementById(`cam-img-${camId}`);
-        if (!container) return;
-        const cam = App.cameras.find(c => c.id === camId);
-        container.innerHTML = `
-            <img src="/api/camera-image?id=${camId}&t=${Date.now()}" alt="Camera ${camId}"
-                 style="width:100%;border-radius:6px;background:#000;"
-                 onerror="this.parentElement.innerHTML='<p style=\\'color:var(--text-dim);font-size:12px;\\'>Snapshot niet beschikbaar</p>'">
-            <div style="display:flex;gap:8px;margin-top:6px;align-items:center;flex-wrap:wrap;">
-                <button onclick="Cameras.refreshImage('${camId}')"
-                        style="background:var(--bg);border:1px solid var(--border);
-                               color:var(--text-dim);padding:4px 10px;border-radius:4px;
-                               font-size:11px;cursor:pointer;">&#8635; Ververs</button>
-                ${cam && cam.streamUrl ? `<button onclick="Cameras.showStream('${camId}')"
-                        style="background:var(--bg);border:1px solid var(--border);
-                               color:var(--text-dim);padding:4px 10px;border-radius:4px;
-                               font-size:11px;cursor:pointer;">&#9654; Live stream</button>` : ''}
-            </div>`;
     },
 
     refreshImage(camId) {
