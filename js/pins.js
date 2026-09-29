@@ -219,21 +219,21 @@ const Pins = {
             if (!video) return;
             const src = `/api/camera-stream?id=${item.streamId}`;
 
-            const showIframeFallback = () => {
+            const showWebsiteFallback = () => {
                 if (!item.website) return;
                 const wrapper = document.getElementById(wrapperId);
                 if (!wrapper) return;
+                const thumbUrl = item.skylineId ? `https://embed.skylinewebcams.com/img/${item.skylineId}.jpg?t=${Date.now()}` : '';
                 wrapper.innerHTML = `
-                    <iframe src="${item.website}" width="100%" height="300" frameborder="0"
-                        allow="autoplay; encrypted-media" allowfullscreen
-                        style="background:#000;display:block;"></iframe>
-                    <button onclick="Pins.toggleFullscreen('${wrapperId}',null)" style="
-                        position:absolute;bottom:8px;right:8px;
-                        background:rgba(0,0,0,0.6);border:none;color:#fff;
-                        width:32px;height:32px;border-radius:4px;cursor:pointer;
-                        font-size:16px;display:flex;align-items:center;justify-content:center;
-                        z-index:10;" title="Volledig scherm">&#x26F6;</button>`;
-                if (status) status.textContent = 'Live (via website)';
+                    <a href="${item.website}" target="_blank" rel="noopener" style="display:block;position:relative;text-decoration:none;">
+                        ${thumbUrl ? `<img src="${thumbUrl}" width="100%" style="display:block;border-radius:6px;background:#111;" alt="${item.name}">` : ''}
+                        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+                            background:rgba(0,0,0,0.7);color:#fff;padding:10px 20px;border-radius:8px;
+                            font-size:14px;font-weight:600;pointer-events:none;">
+                            &#9654; Bekijk live stream
+                        </div>
+                    </a>`;
+                if (status) status.textContent = 'Klik voor live stream op website';
             };
 
             if (typeof Hls !== 'undefined' && Hls.isSupported()) {
@@ -248,17 +248,17 @@ const Pins = {
                     if (data.fatal) {
                         hls.destroy();
                         Pins._activeHls = null;
-                        showIframeFallback();
+                        showWebsiteFallback();
                     }
                 });
                 Pins._activeHls = hls;
             } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
                 video.src = src;
-                video.addEventListener('error', () => showIframeFallback(), { once: true });
+                video.addEventListener('error', () => showWebsiteFallback(), { once: true });
                 video.play().catch(() => {});
                 if (status) status.textContent = 'Live';
             } else {
-                showIframeFallback();
+                showWebsiteFallback();
             }
         }, 100);
 

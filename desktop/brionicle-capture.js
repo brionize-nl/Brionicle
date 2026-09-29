@@ -583,8 +583,18 @@ class BrionicleCapture {
                 }
             });
 
+            const slug = url.replace(/[^a-z0-9]/gi, '-').slice(0, 40);
+            const debugShot = async (step) => {
+                if (!this.config.debug) return;
+                try {
+                    await page.screenshot({ path: path.join(__dirname, `debug-skyline-${slug}-${step}.jpg`), type: 'jpeg', quality: 70 });
+                    this.log(`  Debug screenshot: ${step}`);
+                } catch {}
+            };
+
             await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 }).catch(() => {});
             await this.sleep(3000);
+            await debugShot('1-loaded');
 
             if (detectId && !detectedId) {
                 detectedId = await page.evaluate(() => {
@@ -599,10 +609,12 @@ class BrionicleCapture {
 
             await this.dismissSkylineOverlays(page);
             await this.sleep(2000);
+            await debugShot('2-overlays');
 
             if (!found) {
                 await this.clickSkylinePlay(page);
                 await this.sleep(5000);
+                await debugShot('3-play');
             }
 
             if (!found) {
@@ -618,6 +630,7 @@ class BrionicleCapture {
                     if (playBtn) playBtn.click();
                 });
                 await this.sleep(5000);
+                await debugShot('4-retry');
             }
         } catch (err) {
             this.log(`  Pagina laden mislukt (${url.slice(0, 60)}): ${err.message}`);
