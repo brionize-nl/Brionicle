@@ -77,24 +77,31 @@ const Earthquakes = {
             day: 'numeric', month: 'short', year: 'numeric',
             hour: '2-digit', minute: '2-digit'
         });
-        const tsunamiText = quake.tsunami ? '<span style="color:var(--warning);">Tsunami waarschuwing</span>' : 'Geen tsunami waarschuwing';
+        const magColor = quake.magnitude >= 5 ? 'var(--error)' : quake.magnitude >= 4 ? 'var(--warning)' : '#ffee58';
 
-        return `
-            <h3>Aardbeving</h3>
-            <div class="weather-grid">
-                <div class="weather-item">
-                    <span class="value">${quake.magnitude.toFixed(1)}</span>
-                    <span class="label">Magnitude</span>
-                </div>
-                <div class="weather-item">
-                    <span class="value">${quake.depth.toFixed(0)} km</span>
-                    <span class="label">Diepte</span>
-                </div>
+        let html = `<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+            <div style="width:52px;height:52px;border-radius:50%;background:${magColor}20;border:2px solid ${magColor};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <span style="font-size:22px;font-weight:800;color:${magColor};">${quake.magnitude.toFixed(1)}</span>
             </div>
-            <p style="font-size:13px;color:var(--text);margin-top:8px;">${quake.place}</p>
-            <p style="font-size:12px;color:var(--text-dim);margin-top:4px;">${timeStr}</p>
-            <p style="font-size:12px;margin-top:4px;">${tsunamiText}</p>
-            <a href="${quake.url}" target="_blank" rel="noopener" style="display:inline-block;margin-top:8px;font-size:12px;color:var(--accent);text-decoration:none;">Meer info (USGS) &rarr;</a>
-        `;
+            <div>
+                <div style="font-size:16px;font-weight:700;">${quake.place}</div>
+                <div style="font-size:12px;color:var(--text-dim);">${timeStr}</div>
+            </div>
+        </div>`;
+
+        html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+            <div>
+                <span style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.5px;">Diepte</span>
+                <div style="font-size:18px;font-weight:700;">${quake.depth.toFixed(0)} km</div>
+            </div>
+            <div>
+                <span style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.5px;">Tsunami</span>
+                <div style="font-size:14px;font-weight:600;color:${quake.tsunami ? 'var(--warning)' : 'var(--success)'};">${quake.tsunami ? '&#9888; Waarschuwing' : '&#10003; Geen'}</div>
+            </div>
+        </div>`;
+
+        html += `<a href="${quake.url}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;margin-top:4px;padding:8px 16px;background:var(--accent);color:#000;border-radius:6px;font-size:13px;font-weight:600;text-decoration:none;">USGS Details &rarr;</a>`;
+
+        return html;
     }
 };

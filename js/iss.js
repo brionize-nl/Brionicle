@@ -113,18 +113,31 @@ const ISS = {
         ).join('');
 
         return `
-            <h3>ISS Live</h3>
-            <div class="weather-grid">
-                <div class="weather-item">
-                    <span class="value">${pos.lat.toFixed(2)}°</span>
-                    <span class="label">Latitude</span>
-                </div>
-                <div class="weather-item">
-                    <span class="value">${pos.lon.toFixed(2)}°</span>
-                    <span class="label">Longitude</span>
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+                <span style="font-size:36px;">&#128752;</span>
+                <div>
+                    <div style="font-size:18px;font-weight:700;">International Space Station</div>
+                    <div style="font-size:12px;color:var(--text-dim);">Live positie en NASA TV</div>
                 </div>
             </div>
-            <p style="font-size:12px;color:var(--text-dim);margin-top:8px;">Snelheid: ~27.600 km/u | Hoogte: ~408 km</p>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+                <div>
+                    <span style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.5px;">Positie</span>
+                    <div style="font-size:16px;font-weight:600;font-family:monospace;">${pos.lat.toFixed(2)}° / ${pos.lon.toFixed(2)}°</div>
+                </div>
+                <div>
+                    <span style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.5px;">Snelheid</span>
+                    <div style="font-size:16px;font-weight:600;">27.600 km/u</div>
+                </div>
+                <div>
+                    <span style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.5px;">Hoogte</span>
+                    <div style="font-size:16px;font-weight:600;">~408 km</div>
+                </div>
+                <div>
+                    <span style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.5px;">Omlooptijd</span>
+                    <div style="font-size:16px;font-weight:600;">~92 min</div>
+                </div>
+            </div>
             <div style="margin-top:12px;">${streams}</div>
         `;
     }
