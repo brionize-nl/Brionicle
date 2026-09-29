@@ -1,5 +1,139 @@
 [
     {
+        "id": "hoge-veluwe-wildcam",
+        "name": "Hoge Veluwe wildcam",
+        "type": "wildlife",
+        "lat": 52.0833,
+        "lon": 5.8333,
+        "country": "NL",
+        "description": "Wildcam in Nationaal Park De Hoge Veluwe — herten, wilde zwijnen, vossen en meer",
+        "youtubeChannel": "UCDFhNOoRKMCfrGJEEwdIn4Q",
+        "youtubeVideo": "RsdiBvgeGpg",
+        "website": "https://hogeveluwe.nl/natuur-en-cultuur/natuur/live-wildcam"
+    },
+    {
+        "id": "beleef-de-lente-ooievaar",
+        "name": "Ooievaarsnest — Beleef de Lente",
+        "type": "wildlife",
+        "lat": 52.1375,
+        "lon": 5.0833,
+        "country": "NL",
+        "description": "Live nestcam van ooievaars, Vogelbescherming Nederland",
+        "youtubeChannel": "UCJa3zVLPbfob3IG8Bgs8-Gw",
+        "website": "https://www.vogelbescherming.nl/beleefdelente"
+    },
+    {
+        "id": "scheveningen-strand",
+        "name": "Scheveningen strand",
+        "type": "stadscam",
+        "lat": 52.1030,
+        "lon": 4.2725,
+        "country": "NL",
+        "description": "Live beeld van het strand en de pier van Scheveningen",
+        "youtubeChannel": "UCz2MHQBxJXQEm97PT_mt0-w",
+        "website": "https://www.webcam.nl/scheveningen/"
+    },
+    {
+        "id": "texel-haven",
+        "name": "Oudeschild haven — Texel",
+        "type": "stadscam",
+        "lat": 53.0395,
+        "lon": 4.8498,
+        "country": "NL",
+        "description": "Live cam van de haven van Oudeschild op Texel",
+        "website": "https://www.webcam.nl/texel/"
+    },
+    {
+        "id": "egmond-strand",
+        "name": "Egmond aan Zee strand",
+        "type": "stadscam",
+        "lat": 52.6183,
+        "lon": 4.6228,
+        "country": "NL",
+        "description": "Live strandbeeld Egmond aan Zee, Noord-Holland",
+        "website": "https://www.webcam.nl/egmond/"
+    },
+    {
+        "id": "zeehonden-pieterburen",
+        "name": "Zeehondencentrum Pieterburen",
+        "type": "wildlife",
+        "lat": 53.3978,
+        "lon": 6.4553,
+        "country": "NL",
+        "description": "Zeehondenopvang in Pieterburen — live beelden van zeehonden in herstel",
+        "website": "https://www.zeehondencentrum.nl"
+    },
+    {
+        "id": "burgers-zoo",
+        "name": "Burgers' Zoo Arnhem",
+        "type": "zoo",
+        "lat": 52.0025,
+        "lon": 5.9161,
+        "country": "NL",
+        "description": "Dierentuin met o.a. Safari, Mangrove en het grote koraalrif-aquarium",
+        "website": "https://www.burgerszoo.nl/live"
+    },
+    {
+        "id": "artis",
+        "name": "Artis Amsterdam",
+        "type": "zoo",
+        "lat": 52.3660,
+        "lon": 4.9163,
+        "country": "NL",
+        "description": "Oudste dierentuin van Nederland, midden in Amsterdam",
+        "website": "https://www.artis.nl"
+    },
+    {
+        "id": "dam-amsterdam",
+        "name": "Dam Amsterdam",
+        "type": "stadscam",
+        "lat": 52.3731,
+        "lon": 4.8932,
+        "country": "NL",
+        "description": "Live uitzicht over de Dam, het hart van Amsterdam",
+        "website": "https://www.skylinewebcams.com/en/webcam/nederland/noord-holland/amsterdam/dam-square.html"
+    },
+    {
+        "id": "schiphol",
+        "name": "Schiphol Airport",
+        "type": "stadscam",
+        "lat": 52.3105,
+        "lon": 4.7683,
+        "country": "NL",
+        "description": "Vliegtuigspotters cam bij Schiphol, Polderbaan",
+        "website": "https://www.schiphol.nl/nl/vliegtuig-spotten/"
+    },
+    {
+        "id": "rotterdam-haven",
+        "name": "Haven van Rotterdam",
+        "type": "stadscam",
+        "lat": 51.9070,
+        "lon": 4.4710,
+        "country": "NL",
+        "description": "Live beeld van Europa's grootste haven",
+        "website": "https://www.portofrotterdam.com/nl/online/webcams"
+    },
+    {
+        "id": "domtoren-utrecht",
+        "name": "Domtoren Utrecht",
+        "type": "stadscam",
+        "lat": 52.0907,
+        "lon": 5.1214,
+        "country": "NL",
+        "description": "Uitzicht over Utrecht vanuit de Domtoren",
+        "website": "https://www.webcam.nl/utrecht/"
+    },
+    {
+        "id": "wadden-zeehonden",
+        "name": "Waddenzee zeehonden",
+        "type": "wildlife",
+        "lat": 53.2500,
+        "lon": 5.2000,
+        "country": "NL",
+        "description": "Zeehonden op de zandbanken in de Waddenzee, UNESCO Werelderfgoed",
+        "website": "https://www.ecomare.nl"
+    },
+    {
         "id": "bears-brooks",
         "name": "Bruine beren — Brooks Falls",
         "type": "wildlife",
@@ -22,17 +156,6 @@
         "website": "https://www.africam.com/wildlife/live-stream"
     },
     {
-        "id": "bald-eagles",
-        "name": "Amerikaanse zeearenden — nest",
-        "type": "wildlife",
-        "lat": 28.0587,
-        "lon": -82.4139,
-        "country": "US",
-        "description": "Live nestcam van zeearenden in Florida",
-        "youtubeChannel": "UCnzEBbpHIbOBcLM2ga1w7lQ",
-        "website": "https://explore.org/livecams/bald-eagles"
-    },
-    {
         "id": "monterey-bay",
         "name": "Monterey Bay Aquarium",
         "type": "zoo",
@@ -42,26 +165,6 @@
         "description": "Onderwatercam met kwallen, zeeotters en het Open Sea-aquarium",
         "youtubeChannel": "UCnDiMKj-EBRjcEEPCDMOFSg",
         "website": "https://www.montereybayaquarium.org/animals/live-cams"
-    },
-    {
-        "id": "burgers-zoo",
-        "name": "Burgers' Zoo Arnhem",
-        "type": "zoo",
-        "lat": 52.0025,
-        "lon": 5.9161,
-        "country": "NL",
-        "description": "Dierentuin met o.a. Safari, Mangrove en het grote koraalrif-aquarium",
-        "website": "https://www.burgerszoo.nl/live"
-    },
-    {
-        "id": "artis",
-        "name": "Artis Amsterdam",
-        "type": "zoo",
-        "lat": 52.3660,
-        "lon": 4.9163,
-        "country": "NL",
-        "description": "Oudste dierentuin van Nederland, midden in Amsterdam",
-        "website": "https://www.artis.nl"
     },
     {
         "id": "san-diego-zoo",
@@ -113,18 +216,8 @@
         "lon": -22.2700,
         "country": "IS",
         "description": "Live beelden van vulkanische activiteit op het Reykjanes-schiereiland",
-        "youtubeChannel": "UCEByA3m1N5PpcJiUmXlkiRw",
+        "youtubeChannel": "UCEByA3m1N5PpcJiUmXmNodA",
         "website": "https://icelandmonitor.mbl.is/news/nature_and_travel/"
-    },
-    {
-        "id": "dam-amsterdam",
-        "name": "Dam Amsterdam",
-        "type": "stadscam",
-        "lat": 52.3731,
-        "lon": 4.8932,
-        "country": "NL",
-        "description": "Live uitzicht over de Dam, het hart van Amsterdam",
-        "website": "https://www.skylinewebcams.com/en/webcam/nederland/noord-holland/amsterdam/dam-square.html"
     },
     {
         "id": "shibuya-crossing",
@@ -163,7 +256,7 @@
         "lat": 68.3496,
         "lon": 18.8310,
         "country": "SE",
-        "description": "Live aurora borealis cam vanuit Abisko, Zweeds Lapland — een van de beste plekken ter wereld",
+        "description": "Live aurora borealis cam vanuit Abisko, Zweeds Lapland",
         "website": "https://auroraskystation.se/live/"
     },
     {
@@ -177,24 +270,15 @@
         "website": "https://www.coral.org/"
     },
     {
-        "id": "schiphol",
-        "name": "Schiphol Airport",
-        "type": "stadscam",
-        "lat": 52.3105,
-        "lon": 4.7683,
-        "country": "NL",
-        "description": "Vliegtuigspotters cam bij Schiphol, Polderbaan",
-        "website": "https://www.schiphol.nl/nl/vliegtuig-spotten/"
-    },
-    {
-        "id": "rotterdam-haven",
-        "name": "Haven van Rotterdam",
-        "type": "stadscam",
-        "lat": 51.9070,
-        "lon": 4.4710,
-        "country": "NL",
-        "description": "Live beeld van Europa's grootste haven",
-        "website": "https://www.portofrotterdam.com/nl/online/webcams"
+        "id": "bald-eagles",
+        "name": "Amerikaanse zeearenden — nest",
+        "type": "wildlife",
+        "lat": 28.0587,
+        "lon": -82.4139,
+        "country": "US",
+        "description": "Live nestcam van zeearenden in Florida",
+        "youtubeChannel": "UCnzEBbpHIbOBcLM2ga1w7lQ",
+        "website": "https://explore.org/livecams/bald-eagles"
     },
     {
         "id": "iguazu-falls",
