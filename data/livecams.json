@@ -17,9 +17,9 @@
         "lat": -24.0636,
         "lon": 31.4978,
         "country": "ZA",
-        "description": "Live cam bij een waterplaats in het Kruger-achtige gebied, Zuid-Afrika. Olifanten, leeuwen, giraffen.",
-        "youtubeChannel": "UCnzEBbpHIbOBcLM2ga1w7lQ",
-        "website": "https://explore.org/livecams/africam/african-river-wildlife-camera"
+        "description": "Live cam bij een waterplaats in Kruger-gebied, Zuid-Afrika. Olifanten, leeuwen, giraffen.",
+        "youtubeChannel": "UCIBaDdAbGlFDeS33shmlD0A",
+        "website": "https://www.africam.com/wildlife/live-stream"
     },
     {
         "id": "bald-eagles",
@@ -144,7 +144,6 @@
         "lon": -73.9855,
         "country": "US",
         "description": "Live uitzicht over Times Square, het centrum van Manhattan",
-        "youtubeChannel": "UCRkMNNf-ViPqN4NHLSwQFOg",
         "website": "https://www.earthcam.com/usa/newyork/timessquare/"
     },
     {

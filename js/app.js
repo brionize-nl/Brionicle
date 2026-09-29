@@ -223,18 +223,16 @@ const App = {
         this.setPanelHeader(item.name, `${typeLabel} — ${item.country}`);
 
         const sections = this.clearSections();
-        sections.camera.innerHTML = Pins.renderHTML(item);
+
+        if (item.youtubeChannel) {
+            sections.camera.innerHTML = Pins.renderYouTube(item) + Pins.renderHTML(item);
+        } else {
+            sections.camera.innerHTML = Pins.renderHTML(item);
+        }
+
         this.loadWeather(item.lat, item.lon, sections.weather);
         this.loadSunTimes(item.lat, item.lon, sections.sun);
         this.loadAurora(item.lat, sections.extra);
-
-        if (item.youtubeChannel) {
-            const ytSection = document.createElement('div');
-            ytSection.className = 'panel-section';
-            ytSection.innerHTML = Pins.renderYouTube(item);
-            sections.camera.parentElement.appendChild(ytSection);
-        }
-
         this.loadWikipedia(item.lat, item.lon);
         this.loadRadio(item.lat, item.lon);
     },

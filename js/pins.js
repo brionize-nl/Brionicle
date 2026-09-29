@@ -147,11 +147,27 @@ const Pins = {
     renderYouTube(item) {
         if (!item.youtubeChannel) return '';
 
-        return `
-            <h3>Video</h3>
-            <p style="font-size:12px;color:var(--text-dim);margin-bottom:8px;">Laatste video's van dit kanaal</p>
-            <a href="https://www.youtube.com/@${item.youtubeChannel || ''}" target="_blank" rel="noopener" style="font-size:12px;color:var(--accent);text-decoration:none;">YouTube kanaal openen &rarr;</a>
-            <div id="yt-videos" style="margin-top:8px;"></div>
-        `;
+        const isLiveCam = ['wildlife', 'zoo', 'vulkaan', 'stadscam'].includes(item.type);
+        const channelUrl = item.youtubeChannel.startsWith('UC')
+            ? `https://www.youtube.com/channel/${item.youtubeChannel}`
+            : `https://www.youtube.com/@${item.youtubeChannel}`;
+
+        let html = '<h3>Live stream</h3>';
+
+        if (isLiveCam) {
+            const embedUrl = item.youtubeVideo
+                ? `https://www.youtube.com/embed/${item.youtubeVideo}?autoplay=1&mute=1`
+                : `https://www.youtube.com/embed/live_stream?channel=${item.youtubeChannel}`;
+            html += `
+                <iframe src="${embedUrl}"
+                        width="100%" height="200" frameborder="0"
+                        allow="autoplay; encrypted-media" allowfullscreen
+                        style="border-radius:6px;background:#000;margin-bottom:8px;">
+                </iframe>
+            `;
+        }
+
+        html += `<a href="${channelUrl}" target="_blank" rel="noopener" style="font-size:12px;color:var(--accent);text-decoration:none;">YouTube kanaal openen &rarr;</a>`;
+        return html;
     }
 };
