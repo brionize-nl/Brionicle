@@ -11,6 +11,7 @@ class BrionicleCapture {
         this.config = config;
         this.browser = null;
         this.cameras = new Map();
+        this._starting = new Set();
         this.pollTimer = null;
         this.running = false;
 
@@ -59,6 +60,7 @@ class BrionicleCapture {
                 '--disable-default-apps',
                 '--no-first-run',
                 '--mute-audio',
+                '--disable-popup-blocking',
             ],
             ...(this.config.chromePath ? { executablePath: this.config.chromePath } : {}),
         });
@@ -67,6 +69,7 @@ class BrionicleCapture {
             if (this.running) {
                 this.log('Browser crashed, herstarten over 3 sec...');
                 this.cameras.clear();
+                this._starting.clear();
                 setTimeout(() => this.launchBrowser(), 3000);
             }
         });
@@ -112,14 +115,16 @@ class BrionicleCapture {
         }
 
         for (const [id, spec] of wanted) {
-            if (!this.cameras.has(id)) {
-                await this.startCamera(spec);
+            if (!this.cameras.has(id) && !this._starting.has(id)) {
+                this.startCamera(spec);
             }
         }
     }
 
     async startCamera(spec) {
         const { id, rwsUrl, mode } = spec;
+
+        this._starting.add(id);
         this.log(`Camera ${id} starten (${mode}): ${rwsUrl}`);
 
         try {
@@ -129,16 +134,69 @@ class BrionicleCapture {
                 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
             );
 
+            const popupPromise = new Promise(resolve => {
+                const handler = async (target) => {
+                    if (target.type() === 'page') {
+                        this.browser.off('targetcreated', handler);
+                        const newPage = await target.page();
+                        resolve(newPage);
+                    }
+                };
+                this.browser.on('targetcreated', handler);
+                setTimeout(() => {
+                    this.browser.off('targetcreated', handler);
+                    resolve(null);
+                }, 15000);
+            });
+
             await page.goto(rwsUrl, { waitUntil: 'networkidle2', timeout: 30000 });
 
             await this.dismissCookies(page);
             await this.sleep(2000);
-            await this.tryStartStream(page);
-            await this.sleep(3000);
+
+            let video = await page.$('video');
+            if (!video) {
+                const clicked = await this.clickByText(page, ['livestream', 'live stream', 'live', 'bekijk live']);
+                if (clicked) {
+                    this.log(`  Klik op: "${clicked}"`);
+                }
+            }
+
+            const popupPage = await Promise.race([
+                popupPromise,
+                this.sleep(8000).then(() => null),
+            ]);
+
+            let capturePage = page;
+
+            if (popupPage) {
+                const popupUrl = popupPage.url();
+                this.log(`  Popup geopend: ${popupUrl.slice(0, 80)}`);
+                await this.sleep(3000);
+                capturePage = popupPage;
+            } else {
+                await this.sleep(2000);
+                video = await page.$('video');
+                if (video) {
+                    this.log('  Video gevonden op pagina');
+                } else {
+                    const iframes = await page.$$('iframe');
+                    for (const iframe of iframes) {
+                        try {
+                            const src = await iframe.evaluate(el => el.src || '');
+                            if (src && (src.includes('stream') || src.includes('video') || src.includes('inmoves') || src.includes('live'))) {
+                                this.log(`  Stream iframe gevonden: ${src.slice(0, 60)}`);
+                                break;
+                            }
+                        } catch {}
+                    }
+                    this.log('  Geen popup/video, screenshot van pagina');
+                }
+            }
 
             if (this.config.debug) {
                 const debugPath = path.join(__dirname, `debug-cam-${id}.jpg`);
-                await page.screenshot({ path: debugPath, type: 'jpeg', quality: 80 });
+                await capturePage.screenshot({ path: debugPath, type: 'jpeg', quality: 80 });
                 this.log(`  Debug screenshot: ${debugPath}`);
             }
 
@@ -146,14 +204,22 @@ class BrionicleCapture {
                 ? (this.config.captureInterval || 2000)
                 : (this.config.timelapseInterval || 30000);
 
-            await this.capture(id, page, mode);
+            let stopped = false;
+            const cam = { page, popupPage: popupPage || null, capturePage, mode, timer: null, rwsUrl, stopped: false };
+            this.cameras.set(id, cam);
 
-            const timer = setInterval(() => this.capture(id, page, mode), interval);
-            this.cameras.set(id, { page, mode, timer, rwsUrl });
+            await this.capture(id);
+
+            cam.timer = setInterval(() => {
+                if (!cam.stopped) this.capture(id);
+            }, interval);
+
             this.log(`Camera ${id} actief (elke ${interval / 1000}s)`);
 
         } catch (err) {
             this.log(`Camera ${id} mislukt: ${err.message}`);
+        } finally {
+            this._starting.delete(id);
         }
     }
 
@@ -177,56 +243,6 @@ class BrionicleCapture {
         }
     }
 
-    async tryStartStream(page) {
-        const video = await page.$('video');
-        if (video) {
-            this.log('  Video al actief');
-            await this.tryFullscreen(page);
-            return;
-        }
-
-        const textMatches = ['livestream', 'live stream', 'live', 'afspelen', 'play', 'bekijk live'];
-        const clicked = await this.clickByText(page, textMatches);
-
-        if (clicked) {
-            this.log(`  Klik op: "${clicked}"`);
-            await this.sleep(4000);
-
-            const v = await page.$('video');
-            if (v) {
-                this.log('  Video gestart!');
-                await this.tryFullscreen(page);
-                return;
-            }
-        }
-
-        const playSelectors = [
-            'button[class*="play"]', '.play-button', '.vjs-big-play-button',
-            '[data-action="play"]', 'button[aria-label*="afspelen"]',
-            'button[aria-label*="play" i]', '.player-overlay', '.video-play',
-        ];
-
-        for (const sel of playSelectors) {
-            try {
-                const btn = await page.$(sel);
-                if (btn && await btn.isIntersectingViewport()) {
-                    await btn.click();
-                    this.log(`  Klik op selector: ${sel}`);
-                    await this.sleep(3000);
-
-                    const v = await page.$('video');
-                    if (v) {
-                        this.log('  Video gestart!');
-                        await this.tryFullscreen(page);
-                        return;
-                    }
-                }
-            } catch {}
-        }
-
-        this.log('  Geen video gevonden, screenshot van hele pagina');
-    }
-
     async clickByText(page, textMatches) {
         try {
             const result = await page.evaluate((texts) => {
@@ -248,58 +264,15 @@ class BrionicleCapture {
         }
     }
 
-    async tryFullscreen(page) {
-        await this.sleep(2000);
+    async capture(id) {
+        const cam = this.cameras.get(id);
+        if (!cam || cam.stopped) return;
 
-        const fullscreenTexts = ['popup', 'volledig scherm', 'fullscreen', 'nieuw venster', 'extern'];
-        const clicked = await this.clickByText(page, fullscreenTexts);
-        if (clicked) {
-            this.log(`  Fullscreen klik: "${clicked}"`);
-            await this.sleep(2000);
-            return;
-        }
-
-        const fsSelectors = [
-            'button[class*="fullscreen"]', 'button[class*="popup"]',
-            'button[aria-label*="volledig"]', 'button[aria-label*="fullscreen" i]',
-            'button[aria-label*="popup" i]', '.vjs-fullscreen-control',
-            'button[title*="popup" i]', 'button[title*="fullscreen" i]',
-            'button[title*="volledig" i]',
-        ];
-
-        for (const sel of fsSelectors) {
-            try {
-                const btn = await page.$(sel);
-                if (btn) {
-                    await btn.click();
-                    this.log(`  Fullscreen selector: ${sel}`);
-                    await this.sleep(2000);
-                    return;
-                }
-            } catch {}
-        }
-    }
-
-    async capture(id, page, mode) {
         try {
+            const capturePage = cam.capturePage;
             let buf;
 
-            const pages = await this.browser.pages();
-            let targetPage = page;
-            for (const p of pages) {
-                if (p !== page) {
-                    try {
-                        const url = p.url();
-                        if (url.includes('stream') || url.includes('video') || url.includes('live') || url.includes('inmoves')) {
-                            targetPage = p;
-                            this.log(`  Popup venster gevonden: ${url.slice(0, 60)}`);
-                            break;
-                        }
-                    } catch {}
-                }
-            }
-
-            const video = await targetPage.$('video');
+            const video = await capturePage.$('video');
             if (video) {
                 const box = await video.boundingBox();
                 if (box && box.width > 50 && box.height > 50) {
@@ -308,34 +281,23 @@ class BrionicleCapture {
             }
 
             if (!buf || buf.length < 2000) {
-                const iframe = await targetPage.$('iframe[src*="stream"], iframe[src*="video"], iframe[src*="live"], iframe[src*="inmoves"]');
-                if (iframe) {
-                    const frame = await iframe.contentFrame();
-                    if (frame) {
-                        const frameVideo = await frame.$('video');
-                        if (frameVideo) {
-                            const box = await frameVideo.boundingBox();
-                            if (box && box.width > 50 && box.height > 50) {
-                                buf = await iframe.screenshot({ type: 'jpeg', quality: 85 });
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (!buf || buf.length < 2000) {
-                const fallbackSelectors = [
-                    '.camera-image', '.video-container', '.camera-container',
-                    '.player', '.stream-container', 'main', '.content',
-                ];
-                for (const sel of fallbackSelectors) {
+                const iframes = await capturePage.$$('iframe');
+                for (const iframe of iframes) {
                     try {
-                        const el = await targetPage.$(sel);
-                        if (el) {
-                            const box = await el.boundingBox();
-                            if (box && box.width > 100 && box.height > 50) {
-                                buf = await el.screenshot({ type: 'jpeg', quality: 85 });
-                                if (buf.length > 2000) break;
+                        const frame = await iframe.contentFrame();
+                        if (frame) {
+                            const fVideo = await frame.$('video');
+                            if (fVideo) {
+                                buf = await iframe.screenshot({ type: 'jpeg', quality: 85 });
+                                if (buf && buf.length > 2000) break;
+                            }
+                            const fImg = await frame.$('img');
+                            if (fImg) {
+                                const box = await fImg.boundingBox();
+                                if (box && box.width > 200 && box.height > 100) {
+                                    buf = await fImg.screenshot({ type: 'jpeg', quality: 85 });
+                                    if (buf && buf.length > 2000) break;
+                                }
                             }
                         }
                     } catch {}
@@ -343,7 +305,17 @@ class BrionicleCapture {
             }
 
             if (!buf || buf.length < 2000) {
-                buf = await targetPage.screenshot({
+                const img = await capturePage.$('img[src*="stream"], img[src*="camera"], img[src*="inmoves"], img[src*="video"]');
+                if (img) {
+                    const box = await img.boundingBox();
+                    if (box && box.width > 200 && box.height > 100) {
+                        buf = await img.screenshot({ type: 'jpeg', quality: 85 });
+                    }
+                }
+            }
+
+            if (!buf || buf.length < 2000) {
+                buf = await capturePage.screenshot({
                     type: 'jpeg', quality: 80,
                     clip: { x: 0, y: 0, width: 1280, height: 720 },
                 });
@@ -351,7 +323,7 @@ class BrionicleCapture {
 
             if (!buf || buf.length < 1000) return;
 
-            const key = mode === 'live'
+            const key = cam.mode === 'live'
                 ? `live/${id}.jpg`
                 : `timelapse/${id}/${this.timestamp()}.jpg`;
 
@@ -363,7 +335,7 @@ class BrionicleCapture {
             }));
 
             if (this.config.debug) {
-                this.log(`  ${mode} ${id}: ${(buf.length / 1024).toFixed(1)}KB`);
+                this.log(`  ${cam.mode} ${id}: ${(buf.length / 1024).toFixed(1)}KB`);
             }
 
         } catch (err) {
@@ -379,7 +351,9 @@ class BrionicleCapture {
         const cam = this.cameras.get(id);
         if (!cam) return;
         this.log(`Camera ${id} stoppen`);
-        clearInterval(cam.timer);
+        cam.stopped = true;
+        if (cam.timer) clearInterval(cam.timer);
+        try { if (cam.popupPage) await cam.popupPage.close(); } catch {}
         try { await cam.page.close(); } catch {}
         this.cameras.delete(id);
     }
