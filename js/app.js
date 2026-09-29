@@ -55,7 +55,15 @@ const App = {
     initPanel() {
         document.getElementById('panel-close').addEventListener('click', () => this.closePanel());
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') this.closePanel();
+            if (e.key === 'Escape') {
+                const fs = document.querySelector('.pin-fullscreen');
+                if (fs) {
+                    const btn = fs.querySelector('button[onclick*="toggleFullscreen"], button[onclick*="toggleYtFullscreen"]');
+                    if (btn) btn.click();
+                    return;
+                }
+                this.closePanel();
+            }
         });
 
         const panel = document.getElementById('panel');
@@ -376,9 +384,12 @@ const App = {
     },
 
     closePanel() {
+        const fs = document.querySelector('.pin-fullscreen');
+        if (fs) fs.classList.remove('pin-fullscreen');
         document.getElementById('panel').classList.remove('open');
         this.panelOpen = false;
         Cameras.stopLive();
+        Pins.destroyActiveHls();
         if (this.currentCamera) {
             Cameras.requestDesktop(this.currentCamera, 'stop_live');
         }

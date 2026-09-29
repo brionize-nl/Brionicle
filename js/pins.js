@@ -155,15 +155,24 @@ const Pins = {
         let html = '<h3>Live stream</h3>';
 
         if (isLiveCam) {
+            const ytWrapperId = `yt-wrapper-${item.id}`;
             const embedUrl = item.youtubeVideo
                 ? `https://www.youtube.com/embed/${item.youtubeVideo}?autoplay=1&mute=1`
                 : `https://www.youtube.com/embed/live_stream?channel=${item.youtubeChannel}`;
             html += `
-                <iframe src="${embedUrl}"
-                        width="100%" height="200" frameborder="0"
-                        allow="autoplay; encrypted-media" allowfullscreen
-                        style="border-radius:6px;background:#000;margin-bottom:8px;">
-                </iframe>
+                <div id="${ytWrapperId}" style="position:relative;border-radius:6px;overflow:hidden;margin-bottom:8px;background:#000;">
+                    <iframe src="${embedUrl}"
+                            width="100%" height="200" frameborder="0"
+                            allow="autoplay; encrypted-media" allowfullscreen
+                            style="background:#000;display:block;">
+                    </iframe>
+                    <button onclick="Pins.toggleYtFullscreen('${ytWrapperId}')" style="
+                        position:absolute;bottom:8px;right:8px;
+                        background:rgba(0,0,0,0.6);border:none;color:#fff;
+                        width:32px;height:32px;border-radius:4px;cursor:pointer;
+                        font-size:16px;display:flex;align-items:center;justify-content:center;
+                        z-index:10;" title="Volledig scherm">&#x26F6;</button>
+                </div>
             `;
         }
 
@@ -171,12 +180,37 @@ const Pins = {
         return html;
     },
 
+    toggleYtFullscreen(wrapperId) {
+        const wrapper = document.getElementById(wrapperId);
+        if (!wrapper) return;
+        const iframe = wrapper.querySelector('iframe');
+
+        if (wrapper.classList.contains('pin-fullscreen')) {
+            wrapper.classList.remove('pin-fullscreen');
+            wrapper.style.cssText = 'position:relative;border-radius:6px;overflow:hidden;margin-bottom:8px;background:#000;';
+            if (iframe) iframe.style.height = '200px';
+        } else {
+            wrapper.classList.add('pin-fullscreen');
+            wrapper.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:10000;background:#000;border-radius:0;overflow:hidden;';
+            if (iframe) iframe.style.height = '100vh';
+        }
+    },
+
     renderHlsStream(item) {
         if (!item.streamId) return '';
         const videoId = `hls-${item.streamId}`;
+        const wrapperId = `wrapper-${item.streamId}`;
         let html = '<h3>Live stream</h3>';
+        html += `<div id="${wrapperId}" style="position:relative;border-radius:6px;overflow:hidden;margin-bottom:8px;background:#000;">`;
         html += `<video id="${videoId}" width="100%" height="200" muted autoplay playsinline
-                    style="border-radius:6px;background:#000;margin-bottom:8px;object-fit:cover;"></video>`;
+                    style="background:#000;object-fit:cover;display:block;"></video>`;
+        html += `<button onclick="Pins.toggleFullscreen('${wrapperId}','${videoId}')" style="
+            position:absolute;bottom:8px;right:8px;
+            background:rgba(0,0,0,0.6);border:none;color:#fff;
+            width:32px;height:32px;border-radius:4px;cursor:pointer;
+            font-size:16px;display:flex;align-items:center;justify-content:center;
+            z-index:10;" title="Volledig scherm">&#x26F6;</button>`;
+        html += `</div>`;
         html += `<div id="${videoId}-status" style="font-size:11px;color:var(--text-dim);margin-bottom:4px;">Stream laden...</div>`;
 
         setTimeout(() => {
@@ -209,6 +243,23 @@ const Pins = {
         }, 100);
 
         return html;
+    },
+
+    toggleFullscreen(wrapperId, videoId) {
+        const wrapper = document.getElementById(wrapperId);
+        if (!wrapper) return;
+
+        if (wrapper.classList.contains('pin-fullscreen')) {
+            wrapper.classList.remove('pin-fullscreen');
+            wrapper.style.cssText = 'position:relative;border-radius:6px;overflow:hidden;margin-bottom:8px;background:#000;';
+            const video = document.getElementById(videoId);
+            if (video) video.style.height = '200px';
+        } else {
+            wrapper.classList.add('pin-fullscreen');
+            wrapper.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:10000;background:#000;border-radius:0;overflow:hidden;';
+            const video = document.getElementById(videoId);
+            if (video) video.style.height = '100vh';
+        }
     },
 
     destroyActiveHls() {

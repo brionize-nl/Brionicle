@@ -4,7 +4,12 @@ const CORS_HEADERS = {
     'Access-Control-Max-Age': '86400'
 };
 
-const ALLOWED_HOSTS = ['stream.inmoves.nl', 'www.inmoves.nl'];
+const ALLOWED_HOSTS = [
+    'stream.inmoves.nl', 'www.inmoves.nl',
+    'hd-auth.skylinewebcams.com', 'live-auth.skylinewebcams.com',
+    'hd.skylinewebcams.com', 'live.skylinewebcams.com',
+    'cdn.skylinewebcams.com'
+];
 
 function isAllowedUrl(urlStr) {
     try {
@@ -35,10 +40,16 @@ function rewriteManifest(text, baseUrl, camId, origin) {
     }).join('\n');
 }
 
-const PROXY_HEADERS = {
-    'User-Agent': 'Mozilla/5.0 (compatible; Brionicle/1.0)',
-    'Referer': 'https://www.rwsverkeersinfo.nl/'
-};
+function proxyHeaders(targetUrl) {
+    const base = { 'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36' };
+    if (targetUrl.includes('skylinewebcams.com')) {
+        base['Referer'] = 'https://www.skylinewebcams.com/';
+        base['Origin'] = 'https://www.skylinewebcams.com';
+    } else {
+        base['Referer'] = 'https://www.rwsverkeersinfo.nl/';
+    }
+    return base;
+}
 
 export async function onRequestOptions() {
     return new Response(null, { status: 204, headers: CORS_HEADERS });
@@ -54,7 +65,7 @@ export async function onRequestGet(context) {
     const id = url.searchParams.get('id');
     const seg = url.searchParams.get('seg');
 
-    if (!id || !/^\d+$/.test(id)) {
+    if (!id || !/^[a-z0-9-]+$/.test(id)) {
         return new Response('Ongeldig camera id', { status: 400, headers: CORS_HEADERS });
     }
 
@@ -92,7 +103,7 @@ export async function onRequestGet(context) {
 }
 
 async function proxyManifest(m3u8Url, camId, origin) {
-    const res = await fetch(m3u8Url, { headers: PROXY_HEADERS });
+    const res = await fetch(m3u8Url, { headers: proxyHeaders(m3u8Url) });
     if (!res.ok) {
         return new Response('Stream niet bereikbaar', { status: 502, headers: CORS_HEADERS });
     }
@@ -111,7 +122,7 @@ async function proxyManifest(m3u8Url, camId, origin) {
 }
 
 async function proxySegment(segUrl, camId, origin) {
-    const res = await fetch(segUrl, { headers: PROXY_HEADERS });
+    const res = await fetch(segUrl, { headers: proxyHeaders(segUrl) });
     if (!res.ok) {
         return new Response('Segment niet bereikbaar', { status: 502, headers: CORS_HEADERS });
     }

@@ -37,10 +37,40 @@ class BrionicleCapture {
         await this.launchBrowser();
         this.log('Browser gestart');
 
+        await this.discoverSkylineStreams();
+
         await this.poll();
         this.pollTimer = setInterval(() => this.poll(), this.config.pollInterval || 3000);
 
         this.log('Wachten op camera verzoeken...');
+    }
+
+    async discoverSkylineStreams() {
+        const livecamsPath = path.join(__dirname, '..', 'data', 'livecams.json');
+        if (!fs.existsSync(livecamsPath)) {
+            this.log('Geen livecams.json gevonden, skyline discovery overgeslagen');
+            return;
+        }
+
+        try {
+            const livecams = JSON.parse(fs.readFileSync(livecamsPath, 'utf-8'));
+            const skylineCams = livecams.filter(c => c.streamId && c.website && c.website.includes('skylinewebcams.com'));
+
+            if (skylineCams.length === 0) {
+                this.log('Geen SkylineWebcams cams gevonden');
+                return;
+            }
+
+            this.log(`${skylineCams.length} SkylineWebcams cams gevonden, streams ontdekken...`);
+
+            for (const cam of skylineCams) {
+                if (!this.running) break;
+                await this.startSkylineStream({ id: cam.streamId, skylineUrl: cam.website });
+                await this.sleep(3000);
+            }
+        } catch (err) {
+            this.log(`SkylineWebcams discovery mislukt: ${err.message}`);
+        }
     }
 
     async launchBrowser() {
@@ -105,10 +135,12 @@ class BrionicleCapture {
         const maxLive = this.config.maxLiveCameras || 3;
         const wantedLive = (control.live || []).slice(0, maxLive);
         const wantedTimelapse = control.timelapse || [];
+        const wantedSkyline = control.skyline || [];
 
         const wanted = new Map();
         for (const c of wantedLive) wanted.set(c.id, { ...c, mode: 'live' });
         for (const c of wantedTimelapse) wanted.set(c.id, { ...c, mode: 'timelapse' });
+        for (const c of wantedSkyline) wanted.set(c.id, { ...c, mode: 'skyline' });
 
         for (const [id, cam] of this.cameras) {
             if (!wanted.has(id) || wanted.get(id).mode !== cam.mode) {
@@ -118,7 +150,11 @@ class BrionicleCapture {
 
         for (const [id, spec] of wanted) {
             if (!this.cameras.has(id) && !this._starting.has(id)) {
-                this.startCamera(spec);
+                if (spec.mode === 'skyline') {
+                    this.startSkylineStream(spec);
+                } else {
+                    this.startCamera(spec);
+                }
             }
         }
     }
@@ -421,7 +457,6 @@ class BrionicleCapture {
 
     async scanFramesForStream(page, id) {
         try {
-            // Zoek de inmoves.nl iframe src op de RWS pagina
             const iframeSrc = await page.evaluate(() => {
                 const iframes = document.querySelectorAll('iframe');
                 for (const iframe of iframes) {
@@ -437,7 +472,6 @@ class BrionicleCapture {
 
             this.log(`  Inmoves embed openen: ${iframeSrc.slice(0, 80)}`);
 
-            // Open de embed URL als eigen pagina — dan is het geen cross-origin meer
             const streamPage = await this.browser.newPage();
             let found = false;
 
@@ -471,6 +505,141 @@ class BrionicleCapture {
         } catch (err) {
             this.log(`  Stream scan fout: ${err.message}`);
         }
+    }
+
+    async startSkylineStream(spec) {
+        const { id, skylineUrl } = spec;
+        this._starting.add(id);
+        this.log(`SkylineWebcams ${id} starten: ${skylineUrl}`);
+
+        try {
+            const page = await this.browser.newPage();
+            await page.setViewport({ width: 1280, height: 720 });
+            await page.setUserAgent(
+                'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
+            );
+
+            let found = false;
+            const cdp = await page.target().createCDPSession();
+            await cdp.send('Network.enable');
+            cdp.on('Network.responseReceived', (params) => {
+                if (found) return;
+                const resUrl = params.response.url || '';
+                const ct = params.response.headers['content-type'] || params.response.headers['Content-Type'] || '';
+                if ((resUrl.includes('.m3u8') || ct.includes('mpegurl')) && resUrl.includes('skylinewebcams')) {
+                    found = true;
+                    this.storeStreamUrl(id, resUrl);
+                    this.log(`  SkylineWebcams m3u8 gevonden: ${resUrl.slice(0, 100)}`);
+                }
+            });
+
+            await page.goto(skylineUrl, { waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => {});
+            await this.sleep(3000);
+
+            await this.dismissSkylineOverlays(page);
+            await this.sleep(2000);
+
+            if (!found) {
+                await this.clickSkylinePlay(page);
+                await this.sleep(5000);
+            }
+
+            if (!found) {
+                await this.dismissSkylineOverlays(page);
+                await this.sleep(3000);
+            }
+
+            if (!found) {
+                this.log(`  SkylineWebcams ${id}: geen m3u8 gevonden, retry met klik op video`);
+                await page.evaluate(() => {
+                    const video = document.querySelector('video');
+                    if (video) { video.play().catch(() => {}); }
+                    const playBtn = document.querySelector('.vjs-big-play-button, .play-button, [class*="play"]');
+                    if (playBtn) playBtn.click();
+                });
+                await this.sleep(5000);
+            }
+
+            if (found) {
+                this.log(`  SkylineWebcams ${id}: stream URL opgeslagen`);
+            } else {
+                this.log(`  SkylineWebcams ${id}: geen stream gevonden`);
+            }
+
+            try { await page.close(); } catch {}
+        } catch (err) {
+            this.log(`  SkylineWebcams ${id} mislukt: ${err.message}`);
+        } finally {
+            this._starting.delete(id);
+        }
+    }
+
+    async dismissSkylineOverlays(page) {
+        try {
+            await page.evaluate(() => {
+                const closeSelectors = [
+                    '.fc-cta-consent', '.fc-primary-button',
+                    '[id*="dismiss"]', '[class*="dismiss"]',
+                    '[id*="close"]', '[class*="close"]',
+                    '.ad-close', '.popup-close',
+                    'button[class*="accept"]', '#accept',
+                    '.cookie-accept', '.cc-btn.cc-allow',
+                    '[data-action="accept"]',
+                    '.fc-button.fc-cta-consent',
+                ];
+                for (const sel of closeSelectors) {
+                    const els = document.querySelectorAll(sel);
+                    for (const el of els) {
+                        if (el.offsetParent !== null) {
+                            el.click();
+                        }
+                    }
+                }
+                const overlays = document.querySelectorAll('[class*="overlay"], [class*="modal"], [class*="popup"], [id*="overlay"], [id*="modal"]');
+                for (const el of overlays) {
+                    if (el.offsetParent !== null && el.style) {
+                        const rect = el.getBoundingClientRect();
+                        if (rect.width > 200 && rect.height > 200) {
+                            el.style.display = 'none';
+                        }
+                    }
+                }
+                const ads = document.querySelectorAll('[id*="ad-"], [class*="ad-container"], [class*="adunit"], iframe[src*="ad"], [id*="google_ads"]');
+                for (const ad of ads) {
+                    ad.style.display = 'none';
+                }
+            });
+            this.log('  Overlays/ads verborgen');
+        } catch {}
+    }
+
+    async clickSkylinePlay(page) {
+        try {
+            const clicked = await page.evaluate(() => {
+                const video = document.querySelector('video');
+                if (video) {
+                    video.muted = true;
+                    video.play().catch(() => {});
+                }
+                const playBtns = [
+                    '.vjs-big-play-button',
+                    '.play-button',
+                    '[class*="play-btn"]',
+                    '[aria-label*="play" i]',
+                    '[title*="play" i]',
+                    'button[class*="play"]',
+                ];
+                for (const sel of playBtns) {
+                    const btn = document.querySelector(sel);
+                    if (btn && btn.offsetParent !== null) {
+                        btn.click();
+                        return sel;
+                    }
+                }
+                return null;
+            });
+            if (clicked) this.log(`  Play knop geklikt: ${clicked}`);
+        } catch {}
     }
 
     async storeStreamUrl(id, url) {
