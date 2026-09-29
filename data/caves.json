@@ -1,0 +1,130 @@
+[
+    {
+        "id": "fluweelengrot",
+        "name": "Fluweelengrot Valkenburg",
+        "type": "grot",
+        "lat": 50.8659,
+        "lon": 5.8317,
+        "country": "NL",
+        "description": "Onderaardse mergelgrot met houtskoolschilderingen en beeldhouwwerk, al bezocht sinds de Romeinen",
+        "website": "https://www.fluweelengrot.nl"
+    },
+    {
+        "id": "st-pietersberg",
+        "name": "Grotten van Sint-Pietersberg",
+        "type": "grot",
+        "lat": 50.8381,
+        "lon": 5.6750,
+        "country": "NL",
+        "description": "Enorm gangenstelsel onder Maastricht met 20.000+ gangen, gebruikt als schuilplaats in WOII",
+        "website": "https://www.maastrichtunderground.nl"
+    },
+    {
+        "id": "waitomo",
+        "name": "Waitomo Glowworm Caves",
+        "type": "grot",
+        "lat": -38.2609,
+        "lon": 175.1063,
+        "country": "NZ",
+        "description": "Magische grotten verlicht door duizenden glowworms — een sterrenhemel onder de grond"
+    },
+    {
+        "id": "postojna",
+        "name": "Postojna grot",
+        "type": "grot",
+        "lat": 45.7828,
+        "lon": 14.2047,
+        "country": "SI",
+        "description": "Grootste toeristische grot in Europa met een treintje door 24 km aan gangen en de 'mensvis' (olm)"
+    },
+    {
+        "id": "son-doong",
+        "name": "Son Doong — grootste grot ter wereld",
+        "type": "grot",
+        "lat": 17.5416,
+        "lon": 106.1454,
+        "country": "VN",
+        "description": "De grootste grot ter wereld: 9 km lang, 200 meter hoog, met een eigen jungle en rivier binnenin"
+    },
+    {
+        "id": "blue-grotto",
+        "name": "Blue Grotto (Grotta Azzurra)",
+        "type": "grot",
+        "lat": 40.5614,
+        "lon": 14.2059,
+        "country": "IT",
+        "description": "Zeegrot op Capri met magisch blauw licht door zonlicht dat door het water schijnt"
+    },
+    {
+        "id": "carlsbad",
+        "name": "Carlsbad Caverns",
+        "type": "grot",
+        "lat": 32.1479,
+        "lon": -104.5567,
+        "country": "US",
+        "description": "Enorme kalksteengrotten in New Mexico met de 'Big Room' — groter dan zes voetbalvelden"
+    },
+    {
+        "id": "eisriesenwelt",
+        "name": "Eisriesenwelt — ijsgrot",
+        "type": "grot",
+        "lat": 47.5025,
+        "lon": 13.1894,
+        "country": "AT",
+        "description": "Grootste ijsgrot ter wereld in de Oostenrijkse Alpen, 42 km aan gangen vol ijsformaties"
+    },
+    {
+        "id": "fingals-cave",
+        "name": "Fingal's Cave",
+        "type": "grot",
+        "lat": 56.4314,
+        "lon": -6.3408,
+        "country": "GB",
+        "description": "Zeegrot met zeshoekige basaltkolommen op het eiland Staffa, Schotland"
+    },
+    {
+        "id": "reed-flute",
+        "name": "Reed Flute Cave",
+        "type": "grot",
+        "lat": 25.3001,
+        "lon": 110.2743,
+        "country": "CN",
+        "description": "Spectaculair verlichte kalksteengrot in Guilin, China, 240 meter lang"
+    },
+    {
+        "id": "drach-grotten",
+        "name": "Cuevas del Drach",
+        "type": "grot",
+        "lat": 39.5322,
+        "lon": 3.3307,
+        "country": "ES",
+        "description": "Vier ondergrondse grotten op Mallorca met een van de grootste onderaardse meren ter wereld"
+    },
+    {
+        "id": "skocjan",
+        "name": "Skocjan grotten",
+        "type": "grot",
+        "lat": 45.6640,
+        "lon": 13.9875,
+        "country": "SI",
+        "description": "UNESCO-werelderfgoed met de grootste onderaardse canyon van Europa"
+    },
+    {
+        "id": "jenolan",
+        "name": "Jenolan Caves",
+        "type": "grot",
+        "lat": -33.8195,
+        "lon": 150.0224,
+        "country": "AU",
+        "description": "Oudste open grotsysteem ter wereld in de Blue Mountains, Australie"
+    },
+    {
+        "id": "mammoth-cave",
+        "name": "Mammoth Cave",
+        "type": "grot",
+        "lat": 37.1870,
+        "lon": -86.1003,
+        "country": "US",
+        "description": "Langste grotsysteem ter wereld: 680+ km aan verkende gangen in Kentucky"
+    }
+]

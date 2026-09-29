@@ -384,6 +384,13 @@ html, body {
     border: none !important;
 }
 
+/* Flight marker */
+
+.flight-marker {
+    background: none !important;
+    border: none !important;
+}
+
 /* Roadtrip panel */
 
 .roadtrip-panel {

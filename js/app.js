@@ -17,6 +17,8 @@ const App = {
         Pins.init(this.map);
         UFO.init(this.map);
         Roadtrip.init(this.map);
+        RainRadar.init(this.map);
+        Flights.init(this.map);
 
         await Promise.all([
             this.loadCameras(),
@@ -87,9 +89,14 @@ const App = {
             'layer-earthquakes': (on) => on ? Earthquakes.show((q) => this.onQuakeClick(q)) : Earthquakes.hide(),
             'layer-iss': (on) => on ? ISS.show((p) => this.onISSClick(p)) : ISS.hide(),
             'layer-ufo': (on) => on ? UFO.show((u) => this.onUFOClick(u)) : UFO.hide(),
+            'layer-flights': (on) => on ? Flights.show() : Flights.hide(),
+            'layer-rainradar': (on) => on ? RainRadar.show() : RainRadar.hide(),
             'layer-festivals': (on) => on ? Pins.showLayer('festivals', (p) => this.onPinClick(p)) : Pins.hideLayer('festivals'),
             'layer-monuments': (on) => on ? Pins.showLayer('monuments', (p) => this.onPinClick(p)) : Pins.hideLayer('monuments'),
             'layer-telescopes': (on) => on ? Pins.showLayer('telescopes', (p) => this.onPinClick(p)) : Pins.hideLayer('telescopes'),
+            'layer-livecams': (on) => on ? Pins.showLayer('livecams', (p) => this.onPinClick(p)) : Pins.hideLayer('livecams'),
+            'layer-urban': (on) => on ? Pins.showLayer('urban', (p) => this.onPinClick(p)) : Pins.hideLayer('urban'),
+            'layer-caves': (on) => on ? Pins.showLayer('caves', (p) => this.onPinClick(p)) : Pins.hideLayer('caves'),
             'layer-roadtrip': (on) => on ? Roadtrip.show() : Roadtrip.hide()
         };
 
@@ -142,9 +149,14 @@ const App = {
         if (this.isChecked('layer-earthquakes')) Earthquakes.show((q) => this.onQuakeClick(q));
         if (this.isChecked('layer-iss')) ISS.show((p) => this.onISSClick(p));
         if (this.isChecked('layer-ufo')) UFO.show((u) => this.onUFOClick(u));
+        if (this.isChecked('layer-flights')) Flights.show();
+        if (this.isChecked('layer-rainradar')) RainRadar.show();
         if (this.isChecked('layer-festivals')) Pins.showLayer('festivals', (p) => this.onPinClick(p));
         if (this.isChecked('layer-monuments')) Pins.showLayer('monuments', (p) => this.onPinClick(p));
         if (this.isChecked('layer-telescopes')) Pins.showLayer('telescopes', (p) => this.onPinClick(p));
+        if (this.isChecked('layer-livecams')) Pins.showLayer('livecams', (p) => this.onPinClick(p));
+        if (this.isChecked('layer-urban')) Pins.showLayer('urban', (p) => this.onPinClick(p));
+        if (this.isChecked('layer-caves')) Pins.showLayer('caves', (p) => this.onPinClick(p));
     },
 
     isChecked(id) {

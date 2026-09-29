@@ -12,7 +12,14 @@ const Pins = {
         natuur: { color: '#66bb6a', icon: '&#9670;', label: 'Natuur' },
         telescoop: { color: '#90caf9', icon: '&#9733;', label: 'Telescopen' },
         radiotelescoop: { color: '#90caf9', icon: '&#9733;', label: 'Telescopen' },
-        ruimtetelescoop: { color: '#90caf9', icon: '&#9733;', label: 'Telescopen' }
+        ruimtetelescoop: { color: '#90caf9', icon: '&#9733;', label: 'Telescopen' },
+        wildlife: { color: '#4caf50', icon: '&#128062;', label: 'Live cam' },
+        zoo: { color: '#4caf50', icon: '&#128059;', label: 'Dierentuin' },
+        vulkaan: { color: '#ff5722', icon: '&#127755;', label: 'Vulkaan cam' },
+        stadscam: { color: '#29b6f6', icon: '&#127903;', label: 'Stadscam' },
+        streetart: { color: '#ff4081', icon: '&#127912;', label: 'Street art' },
+        nachtleven: { color: '#ce93d8', icon: '&#127863;', label: 'Nachtleven' },
+        grot: { color: '#8d6e63', icon: '&#9968;', label: 'Grot' }
     },
 
     init(map) {
@@ -20,19 +27,28 @@ const Pins = {
         this.layers = {
             festivals: L.layerGroup(),
             monuments: L.layerGroup(),
-            telescopes: L.layerGroup()
+            telescopes: L.layerGroup(),
+            livecams: L.layerGroup(),
+            urban: L.layerGroup(),
+            caves: L.layerGroup()
         };
     },
 
     async loadAll() {
-        const [festivals, monuments, telescopes] = await Promise.all([
+        const [festivals, monuments, telescopes, livecams, urban, caves] = await Promise.all([
             this.fetchJSON('data/festivals.json'),
             this.fetchJSON('data/monuments.json'),
-            this.fetchJSON('data/telescopes.json')
+            this.fetchJSON('data/telescopes.json'),
+            this.fetchJSON('data/livecams.json'),
+            this.fetchJSON('data/urban.json'),
+            this.fetchJSON('data/caves.json')
         ]);
         this.data.festivals = festivals || [];
         this.data.monuments = monuments || [];
         this.data.telescopes = telescopes || [];
+        this.data.livecams = livecams || [];
+        this.data.urban = urban || [];
+        this.data.caves = caves || [];
     },
 
     async fetchJSON(url) {
@@ -111,8 +127,14 @@ const Pins = {
             parts.push(`<p style="font-size:12px;color:var(--text-dim);">Genre: ${item.genre}</p>`);
         }
 
+        if (item.country) {
+            parts.push(`<p style="font-size:12px;color:var(--text-dim);">Land: ${item.country}</p>`);
+        }
+
         if (item.website) {
-            parts.push(`<a href="${item.website}" target="_blank" rel="noopener" style="display:inline-block;margin-top:4px;font-size:12px;color:var(--accent);text-decoration:none;">Website &rarr;</a>`);
+            const isLiveCam = ['wildlife', 'zoo', 'vulkaan', 'stadscam'].includes(item.type);
+            const label = isLiveCam ? 'Bekijk live' : 'Website';
+            parts.push(`<a href="${item.website}" target="_blank" rel="noopener" style="display:inline-block;margin-top:6px;font-size:12px;color:var(--accent);text-decoration:none;">${label} &rarr;</a>`);
         }
 
         if (item.webcamUrl) {

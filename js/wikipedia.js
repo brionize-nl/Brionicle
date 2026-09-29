@@ -1,6 +1,12 @@
 const Wikipedia = {
     async fetch(lat, lon) {
-        const url = `https://en.wikipedia.org/w/api.php?action=query&list=geosearch&gscoord=${lat}|${lon}&gsradius=5000&gslimit=3&format=json&origin=*`;
+        const result = await this.fetchLang('nl', lat, lon);
+        if (result && result.length > 0) return result;
+        return await this.fetchLang('en', lat, lon);
+    },
+
+    async fetchLang(lang, lat, lon) {
+        const url = `https://${lang}.wikipedia.org/w/api.php?action=query&list=geosearch&gscoord=${lat}|${lon}&gsradius=5000&gslimit=3&format=json&origin=*`;
         const res = await fetch(url);
         if (!res.ok) return null;
         const data = await res.json();
@@ -8,7 +14,7 @@ const Wikipedia = {
         if (!pages || pages.length === 0) return null;
 
         const pageIds = pages.map(p => p.pageid).join('|');
-        const detailUrl = `https://en.wikipedia.org/w/api.php?action=query&pageids=${pageIds}&prop=extracts|pageimages&exintro=true&explaintext=true&exsentences=3&piprop=thumbnail&pithumbsize=400&format=json&origin=*`;
+        const detailUrl = `https://${lang}.wikipedia.org/w/api.php?action=query&pageids=${pageIds}&prop=extracts|pageimages&exintro=true&explaintext=true&exsentences=3&piprop=thumbnail&pithumbsize=400&format=json&origin=*`;
         const detailRes = await fetch(detailUrl);
         if (!detailRes.ok) return null;
         const detailData = await detailRes.json();
@@ -17,7 +23,7 @@ const Wikipedia = {
             title: page.title,
             extract: page.extract,
             thumbnail: page.thumbnail?.source || null,
-            url: `https://en.wikipedia.org/wiki/${encodeURIComponent(page.title.replace(/ /g, '_'))}`
+            url: `https://${lang}.wikipedia.org/wiki/${encodeURIComponent(page.title.replace(/ /g, '_'))}`
         }));
     },
 

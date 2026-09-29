@@ -5,12 +5,13 @@ const Aurora = {
             if (!res.ok) return null;
             const data = await res.json();
             if (data.length < 2) return null;
-            const latest = data[data.length - 1];
-            return {
-                kp: parseFloat(latest[1]),
-                time: latest[0],
-                observed: latest[2] === 'observed'
-            };
+            for (let i = data.length - 1; i >= 1; i--) {
+                const kp = parseFloat(data[i][1]);
+                if (!isNaN(kp)) {
+                    return { kp, time: data[i][0], observed: data[i][2] === 'observed' };
+                }
+            }
+            return null;
         } catch {
             return null;
         }
