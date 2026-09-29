@@ -134,69 +134,34 @@ class BrionicleCapture {
                 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
             );
 
-            const popupPromise = new Promise(resolve => {
-                const handler = async (target) => {
-                    if (target.type() === 'page') {
-                        this.browser.off('targetcreated', handler);
-                        const newPage = await target.page();
-                        resolve(newPage);
-                    }
-                };
-                this.browser.on('targetcreated', handler);
-                setTimeout(() => {
-                    this.browser.off('targetcreated', handler);
-                    resolve(null);
-                }, 15000);
-            });
-
             await page.goto(rwsUrl, { waitUntil: 'networkidle2', timeout: 30000 });
-
             await this.dismissCookies(page);
             await this.sleep(2000);
 
-            let video = await page.$('video');
-            if (!video) {
-                const clicked = await this.clickByText(page, ['livestream', 'live stream', 'live', 'bekijk live']);
-                if (clicked) {
-                    this.log(`  Klik op: "${clicked}"`);
-                }
+            // Stap 1: Klik het "Live stream" schuifje aan
+            const toggled = await this.clickLiveToggle(page);
+            if (toggled) {
+                this.log('  Live stream toggle aangeklikt');
+                await this.sleep(3000);
+            } else {
+                this.log('  Geen live stream toggle gevonden');
             }
 
-            const popupPage = await Promise.race([
-                popupPromise,
-                this.sleep(8000).then(() => null),
-            ]);
-
+            // Stap 2: Zoek de video of iframe met stream
             let capturePage = page;
-
-            if (popupPage) {
-                const popupUrl = popupPage.url();
-                this.log(`  Popup geopend: ${popupUrl.slice(0, 80)}`);
-                await this.sleep(3000);
-                capturePage = popupPage;
+            const video = await page.$('video');
+            if (video) {
+                this.log('  Video element gevonden');
             } else {
-                await this.sleep(2000);
-                video = await page.$('video');
-                if (video) {
-                    this.log('  Video gevonden op pagina');
-                } else {
-                    const iframes = await page.$$('iframe');
-                    for (const iframe of iframes) {
-                        try {
-                            const src = await iframe.evaluate(el => el.src || '');
-                            if (src && (src.includes('stream') || src.includes('video') || src.includes('inmoves') || src.includes('live'))) {
-                                this.log(`  Stream iframe gevonden: ${src.slice(0, 60)}`);
-                                break;
-                            }
-                        } catch {}
-                    }
-                    this.log('  Geen popup/video, screenshot van pagina');
+                const streamIframe = await this.findStreamIframe(page);
+                if (streamIframe) {
+                    this.log('  Stream iframe gevonden');
                 }
             }
 
             if (this.config.debug) {
                 const debugPath = path.join(__dirname, `debug-cam-${id}.jpg`);
-                await capturePage.screenshot({ path: debugPath, type: 'jpeg', quality: 80 });
+                await page.screenshot({ path: debugPath, type: 'jpeg', quality: 80 });
                 this.log(`  Debug screenshot: ${debugPath}`);
             }
 
@@ -204,8 +169,7 @@ class BrionicleCapture {
                 ? (this.config.captureInterval || 2000)
                 : (this.config.timelapseInterval || 30000);
 
-            let stopped = false;
-            const cam = { page, popupPage: popupPage || null, capturePage, mode, timer: null, rwsUrl, stopped: false };
+            const cam = { page, capturePage: page, mode, timer: null, rwsUrl, stopped: false };
             this.cameras.set(id, cam);
 
             await this.capture(id);
@@ -241,6 +205,83 @@ class BrionicleCapture {
                 }
             } catch {}
         }
+    }
+
+    async clickLiveToggle(page) {
+        try {
+            const clicked = await page.evaluate(() => {
+                // Zoek het "Live stream" toggle schuifje op de RWS pagina
+                // Het is een toggle/switch element naast de tekst "Live stream"
+
+                // Methode 1: Zoek input[type=checkbox] bij "live stream" label
+                const labels = [...document.querySelectorAll('label')];
+                for (const label of labels) {
+                    const text = (label.textContent || '').toLowerCase();
+                    if (text.includes('live stream') || text.includes('livestream')) {
+                        const input = label.querySelector('input') || document.getElementById(label.htmlFor);
+                        if (input && !input.checked) {
+                            input.click();
+                            return 'label-input';
+                        }
+                        label.click();
+                        return 'label';
+                    }
+                }
+
+                // Methode 2: Zoek toggle/switch elementen
+                const toggleSelectors = [
+                    '[class*="toggle"][class*="stream"]',
+                    '[class*="toggle"][class*="live"]',
+                    '[class*="switch"][class*="stream"]',
+                    '[class*="switch"][class*="live"]',
+                    'input[type="checkbox"][id*="live"]',
+                    'input[type="checkbox"][id*="stream"]',
+                    'input[type="checkbox"][name*="live"]',
+                    '[role="switch"]',
+                    '[role="checkbox"]',
+                ];
+                for (const sel of toggleSelectors) {
+                    const el = document.querySelector(sel);
+                    if (el && el.offsetParent !== null) {
+                        el.click();
+                        return 'selector: ' + sel;
+                    }
+                }
+
+                // Methode 3: Zoek elke klikbare element met "live stream" tekst
+                const clickables = [...document.querySelectorAll('a, button, span, div, label, input')];
+                for (const el of clickables) {
+                    const text = (el.textContent || '').trim().toLowerCase();
+                    const ariaLabel = (el.getAttribute('aria-label') || '').toLowerCase();
+                    if ((text === 'live stream' || text === 'livestream' || ariaLabel.includes('live stream'))
+                        && el.offsetParent !== null) {
+                        const rect = el.getBoundingClientRect();
+                        if (rect.width > 5 && rect.height > 5 && rect.width < 300) {
+                            el.click();
+                            return 'text-match: ' + text.slice(0, 30);
+                        }
+                    }
+                }
+
+                return null;
+            });
+            return clicked;
+        } catch {
+            return null;
+        }
+    }
+
+    async findStreamIframe(page) {
+        try {
+            const iframes = await page.$$('iframe');
+            for (const iframe of iframes) {
+                const src = await iframe.evaluate(el => el.src || '');
+                if (src && (src.includes('inmoves') || src.includes('stream') || src.includes('video'))) {
+                    return iframe;
+                }
+            }
+        } catch {}
+        return null;
     }
 
     async clickByText(page, textMatches) {
