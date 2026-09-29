@@ -38,7 +38,7 @@ export async function onRequestGet(context) {
 export async function onRequestPost(context) {
     const bucket = context.env.LIVE_BUCKET;
     if (!bucket) {
-        return new Response(JSON.stringify({ error: 'R2 niet geconfigureerd' }), {
+        return new Response(JSON.stringify({ error: 'R2 niet geconfigureerd', hint: 'LIVE_BUCKET binding ontbreekt' }), {
             status: 503, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }
         });
     }
