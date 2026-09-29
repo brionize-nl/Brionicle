@@ -4,6 +4,9 @@ const Cameras = {
     liveInterval: null,
     desktopAvailable: null,
     _timelapseData: {},
+    _hls: null,
+    _hlsRetry: null,
+    _hlsRetryCount: 0,
 
     init(map) {
         this.layerGroup = L.layerGroup().addTo(map);
@@ -99,6 +102,18 @@ const Cameras = {
             clearInterval(this.liveInterval);
             this.liveInterval = null;
         }
+        this.destroyHls();
+    },
+
+    destroyHls() {
+        if (this._hlsRetry) {
+            clearTimeout(this._hlsRetry);
+            this._hlsRetry = null;
+        }
+        if (this._hls) {
+            this._hls.destroy();
+            this._hls = null;
+        }
     },
 
     renderCamera(cam) {
@@ -175,9 +190,72 @@ const Cameras = {
         const container = document.getElementById(containerId);
         if (!container) return;
         this.stopLive();
+        this._hlsRetryCount = 0;
 
         this.requestDesktop(cam, 'start_live');
-        this.startLive(cam, containerId);
+        this.tryHls(cam, containerId);
+    },
+
+    tryHls(cam, containerId) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+
+        const canHls = (typeof Hls !== 'undefined' && Hls.isSupported()) ||
+                       document.createElement('video').canPlayType('application/vnd.apple.mpegurl');
+
+        if (!canHls) {
+            this.startLive(cam, containerId);
+            return;
+        }
+
+        const streamUrl = `/api/camera-stream?id=${cam.id}`;
+
+        container.innerHTML = `
+            <div style="position:relative;">
+                <video id="cam-hls-${cam.id}" autoplay muted playsinline
+                       style="width:100%;border-radius:6px;background:#000;min-height:200px;"></video>
+                <span style="position:absolute;top:8px;right:8px;
+                    background:rgba(0,0,0,0.6);color:#4caf50;padding:2px 8px;border-radius:10px;
+                    font-size:11px;font-weight:600;display:flex;align-items:center;gap:4px;">
+                    <span style="width:6px;height:6px;background:#4caf50;border-radius:50%;display:inline-block;animation:blink 1s infinite;"></span>
+                    HD LIVE
+                </span>
+            </div>
+            ${this.renderButtons(cam, 'live')}`;
+
+        const video = document.getElementById(`cam-hls-${cam.id}`);
+        if (!video) return;
+
+        const onFail = () => {
+            this.destroyHls();
+            this.startLive(cam, containerId);
+            if (this._hlsRetryCount < 1) {
+                this._hlsRetryCount++;
+                this._hlsRetry = setTimeout(() => {
+                    if (!document.getElementById(containerId)) return;
+                    if (this._hls) return;
+                    this.stopLive();
+                    this.tryHls(cam, containerId);
+                }, 15000);
+            }
+        };
+
+        if (typeof Hls !== 'undefined' && Hls.isSupported()) {
+            const hls = new Hls({
+                enableWorker: true,
+                lowLatencyMode: true,
+                backBufferLength: 30,
+            });
+            hls.loadSource(streamUrl);
+            hls.attachMedia(video);
+            hls.on(Hls.Events.MANIFEST_PARSED, () => video.play().catch(() => {}));
+            hls.on(Hls.Events.ERROR, (_, data) => { if (data.fatal) onFail(); });
+            this._hls = hls;
+        } else {
+            video.src = streamUrl;
+            video.addEventListener('error', onFail, { once: true });
+            video.play().catch(() => {});
+        }
     },
 
     showLiveView(cam, containerId, source) {

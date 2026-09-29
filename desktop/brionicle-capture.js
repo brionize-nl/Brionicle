@@ -2,7 +2,7 @@
 'use strict';
 
 const puppeteer = require('puppeteer');
-const { S3Client, PutObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
+const { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
 const fs = require('fs');
 const path = require('path');
 
@@ -133,6 +133,17 @@ class BrionicleCapture {
             await page.setUserAgent(
                 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
             );
+
+            // Luister naar netwerk responses voor m3u8 URL ontdekking
+            page.on('response', async (response) => {
+                try {
+                    const resUrl = response.url();
+                    const ct = response.headers()['content-type'] || '';
+                    if ((resUrl.includes('.m3u8') || ct.includes('mpegurl')) && resUrl.includes('inmoves.nl')) {
+                        await this.storeStreamUrl(id, resUrl);
+                    }
+                } catch {}
+            });
 
             await page.goto(rwsUrl, { waitUntil: 'networkidle2', timeout: 30000 });
             await this.dismissCookies(page);
@@ -403,6 +414,20 @@ class BrionicleCapture {
         return new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
     }
 
+    async storeStreamUrl(id, url) {
+        this.log(`  Stream URL gevonden voor camera ${id}: ${url.slice(0, 80)}`);
+        try {
+            await this.s3.send(new PutObjectCommand({
+                Bucket: this.config.r2.bucketName,
+                Key: `streams/${id}.json`,
+                Body: JSON.stringify({ url, discovered: Date.now() }),
+                ContentType: 'application/json',
+            }));
+        } catch (err) {
+            if (this.config.debug) this.log(`  Stream URL opslaan mislukt: ${err.message}`);
+        }
+    }
+
     async stopCamera(id) {
         const cam = this.cameras.get(id);
         if (!cam) return;
@@ -410,6 +435,12 @@ class BrionicleCapture {
         cam.stopped = true;
         if (cam.timer) clearInterval(cam.timer);
         try { await cam.page.close(); } catch {}
+        try {
+            await this.s3.send(new DeleteObjectCommand({
+                Bucket: this.config.r2.bucketName,
+                Key: `streams/${id}.json`,
+            }));
+        } catch {}
         this.cameras.delete(id);
     }
 

@@ -4,13 +4,139 @@ const CORS_HEADERS = {
     'Access-Control-Max-Age': '86400'
 };
 
+const ALLOWED_HOSTS = ['stream.inmoves.nl', 'www.inmoves.nl'];
+
+function isAllowedUrl(urlStr) {
+    try {
+        const u = new URL(urlStr);
+        return ALLOWED_HOSTS.some(h => u.hostname === h || u.hostname.endsWith('.' + h));
+    } catch {
+        return false;
+    }
+}
+
+function rewriteManifest(text, baseUrl, camId, origin) {
+    return text.split('\n').map(line => {
+        const trimmed = line.trim();
+        if (!trimmed) return line;
+
+        if (trimmed.startsWith('#')) {
+            if (trimmed.includes('URI="')) {
+                return trimmed.replace(/URI="([^"]+)"/g, (_, uri) => {
+                    const abs = uri.startsWith('http') ? uri : baseUrl + uri;
+                    return `URI="${origin}/api/camera-stream?id=${camId}&seg=${encodeURIComponent(abs)}"`;
+                });
+            }
+            return line;
+        }
+
+        const abs = trimmed.startsWith('http') ? trimmed : baseUrl + trimmed;
+        return `${origin}/api/camera-stream?id=${camId}&seg=${encodeURIComponent(abs)}`;
+    }).join('\n');
+}
+
+const PROXY_HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (compatible; Brionicle/1.0)',
+    'Referer': 'https://www.rwsverkeersinfo.nl/'
+};
+
 export async function onRequestOptions() {
     return new Response(null, { status: 204, headers: CORS_HEADERS });
 }
 
-export async function onRequestGet() {
-    return new Response(JSON.stringify({ error: 'HLS streaming niet beschikbaar. Gebruik /api/camera-live voor desktop captures.' }), {
-        status: 410,
-        headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }
+export async function onRequestGet(context) {
+    const bucket = context.env.LIVE_BUCKET;
+    if (!bucket) {
+        return new Response('R2 niet geconfigureerd', { status: 503, headers: CORS_HEADERS });
+    }
+
+    const url = new URL(context.request.url);
+    const id = url.searchParams.get('id');
+    const seg = url.searchParams.get('seg');
+
+    if (!id || !/^\d+$/.test(id)) {
+        return new Response('Ongeldig camera id', { status: 400, headers: CORS_HEADERS });
+    }
+
+    if (seg) {
+        if (!isAllowedUrl(seg)) {
+            return new Response('Ongeldig segment URL', { status: 403, headers: CORS_HEADERS });
+        }
+        return proxySegment(seg, id, url.origin);
+    }
+
+    try {
+        const obj = await bucket.get(`streams/${id}.json`);
+        if (!obj) {
+            return new Response(JSON.stringify({ error: 'Geen stream beschikbaar' }), {
+                status: 404,
+                headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }
+            });
+        }
+
+        const data = JSON.parse(await obj.text());
+        if (!data.url || !isAllowedUrl(data.url)) {
+            return new Response(JSON.stringify({ error: 'Ongeldige stream URL' }), {
+                status: 404,
+                headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }
+            });
+        }
+
+        return proxyManifest(data.url, id, url.origin);
+    } catch {
+        return new Response(JSON.stringify({ error: 'Stream fout' }), {
+            status: 500,
+            headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }
+        });
+    }
+}
+
+async function proxyManifest(m3u8Url, camId, origin) {
+    const res = await fetch(m3u8Url, { headers: PROXY_HEADERS });
+    if (!res.ok) {
+        return new Response('Stream niet bereikbaar', { status: 502, headers: CORS_HEADERS });
+    }
+
+    const text = await res.text();
+    const baseUrl = m3u8Url.substring(0, m3u8Url.lastIndexOf('/') + 1);
+    const rewritten = rewriteManifest(text, baseUrl, camId, origin);
+
+    return new Response(rewritten, {
+        headers: {
+            ...CORS_HEADERS,
+            'Content-Type': 'application/vnd.apple.mpegurl',
+            'Cache-Control': 'no-cache, no-store'
+        }
+    });
+}
+
+async function proxySegment(segUrl, camId, origin) {
+    const res = await fetch(segUrl, { headers: PROXY_HEADERS });
+    if (!res.ok) {
+        return new Response('Segment niet bereikbaar', { status: 502, headers: CORS_HEADERS });
+    }
+
+    const ct = res.headers.get('content-type') || 'video/mp2t';
+
+    if (segUrl.endsWith('.m3u8') || ct.includes('mpegurl')) {
+        const text = await res.text();
+        const baseUrl = segUrl.substring(0, segUrl.lastIndexOf('/') + 1);
+        const rewritten = rewriteManifest(text, baseUrl, camId, origin);
+
+        return new Response(rewritten, {
+            headers: {
+                ...CORS_HEADERS,
+                'Content-Type': 'application/vnd.apple.mpegurl',
+                'Cache-Control': 'no-cache, no-store'
+            }
+        });
+    }
+
+    return new Response(res.body, {
+        headers: {
+            ...CORS_HEADERS,
+            'Content-Type': ct,
+            'Cache-Control': 'no-cache, no-store'
+        }
     });
 }
