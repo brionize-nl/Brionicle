@@ -384,11 +384,21 @@ html, body {
     border: none !important;
 }
 
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
 /* Flight marker */
 
 .flight-marker {
     background: none !important;
     border: none !important;
+    transition: transform 3s linear !important;
+}
+
+.flight-marker-tracked {
+    filter: drop-shadow(0 0 8px #fff) drop-shadow(0 0 16px var(--accent)) !important;
 }
 
 /* Roadtrip panel */

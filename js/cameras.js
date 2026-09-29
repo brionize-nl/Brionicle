@@ -2,6 +2,8 @@ const Cameras = {
     markers: [],
     layerGroup: null,
     liveInterval: null,
+    desktopAvailable: null,
+    _timelapseData: {},
 
     init(map) {
         this.layerGroup = L.layerGroup().addTo(map);
@@ -102,7 +104,9 @@ const Cameras = {
     renderCamera(cam) {
         const containerId = `cam-img-${cam.id}`;
         this.stopLive();
+        this.stopTimelapsePlay(cam.id);
 
+        this.requestDesktop(cam, 'start_live');
         setTimeout(() => this.startLive(cam, containerId), 50);
 
         let html = '';
@@ -114,14 +118,45 @@ const Cameras = {
         return html;
     },
 
+    requestDesktop(cam, action) {
+        fetch('/api/camera-control', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: action,
+                camera: { id: cam.id, rwsUrl: cam.rwsPageUrl },
+                cameraId: cam.id
+            })
+        }).catch(() => {});
+    },
+
     startLive(cam, containerId) {
         const container = document.getElementById(containerId);
         if (!container) return;
 
-        const imgUrl = `/api/camera-image?id=${cam.id}&t=${Date.now()}`;
+        if (this.desktopAvailable !== false) {
+            const desktopImg = new Image();
+            desktopImg.onload = () => {
+                this.desktopAvailable = true;
+                this.showLiveView(cam, containerId, 'desktop');
+            };
+            desktopImg.onerror = () => {
+                this.desktopAvailable = false;
+                this.trySnapshot(cam, containerId);
+            };
+            desktopImg.src = `/api/camera-live?id=${cam.id}&t=${Date.now()}`;
+        } else {
+            this.trySnapshot(cam, containerId);
+        }
+    },
+
+    trySnapshot(cam, containerId) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+
         const img = new Image();
         img.onload = () => {
-            this.showLiveView(cam, containerId);
+            this.showLiveView(cam, containerId, 'snapshot');
         };
         img.onerror = () => {
             container.innerHTML = cam.rwsPageUrl
@@ -134,34 +169,44 @@ const Cameras = {
                    </a>`
                 : '<p style="color:var(--text-dim);font-size:12px;">Camera niet beschikbaar</p>';
         };
-        img.src = imgUrl;
+        img.src = `/api/camera-image?id=${cam.id}&t=${Date.now()}`;
     },
 
-    showLiveView(cam, containerId) {
+    showLiveView(cam, containerId, source) {
         const container = document.getElementById(containerId);
         if (!container) return;
         this.stopLive();
 
+        const imgSrc = source === 'desktop'
+            ? `/api/camera-live?id=${cam.id}&t=${Date.now()}`
+            : `/api/camera-image?id=${cam.id}&t=${Date.now()}`;
+
+        const sourceLabel = source === 'desktop' ? 'HD LIVE' : 'LIVE';
+        const dotColor = source === 'desktop' ? '#4caf50' : '#f44';
+
         container.innerHTML = `
             <div style="position:relative;">
-                <img id="cam-live-${cam.id}" src="/api/camera-image?id=${cam.id}&t=${Date.now()}" alt="${cam.name}"
+                <img id="cam-live-${cam.id}" src="${imgSrc}" alt="${cam.name}"
                      style="width:100%;border-radius:6px;background:#000;">
-                <span id="cam-live-dot-${cam.id}" style="position:absolute;top:8px;right:8px;
-                    background:rgba(0,0,0,0.6);color:#f44;padding:2px 8px;border-radius:10px;
+                <span style="position:absolute;top:8px;right:8px;
+                    background:rgba(0,0,0,0.6);color:${dotColor};padding:2px 8px;border-radius:10px;
                     font-size:11px;font-weight:600;display:flex;align-items:center;gap:4px;">
-                    <span style="width:6px;height:6px;background:#f44;border-radius:50;display:inline-block;animation:blink 1s infinite;"></span>
-                    LIVE
+                    <span style="width:6px;height:6px;background:${dotColor};border-radius:50%;display:inline-block;animation:blink 1s infinite;"></span>
+                    ${sourceLabel}
                 </span>
             </div>
             ${this.renderButtons(cam, 'live')}`;
+
+        const endpoint = source === 'desktop' ? '/api/camera-live' : '/api/camera-image';
+        const interval = source === 'desktop' ? 2000 : 3000;
 
         this.liveInterval = setInterval(() => {
             const liveImg = document.getElementById(`cam-live-${cam.id}`);
             if (!liveImg) { this.stopLive(); return; }
             const next = new Image();
             next.onload = () => { liveImg.src = next.src; };
-            next.src = `/api/camera-image?id=${cam.id}&t=${Date.now()}`;
-        }, 3000);
+            next.src = `${endpoint}?id=${cam.id}&t=${Date.now()}`;
+        }, interval);
     },
 
     showSnapshot(cam, containerId) {
@@ -174,6 +219,137 @@ const Cameras = {
                  style="width:100%;border-radius:6px;background:#000;"
                  onerror="this.style.display='none'">
             ${this.renderButtons(cam, 'snapshot')}`;
+    },
+
+    async showTimelapse(cam, containerId) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        this.stopLive();
+        this.stopTimelapsePlay(cam.id);
+
+        container.innerHTML = '<div class="loading">Timelapse laden...</div>';
+
+        try {
+            const res = await fetch(`/api/timelapse?id=${cam.id}&action=list`);
+            const data = await res.json();
+
+            if (!data.frames || data.frames.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align:center;padding:20px;">
+                        <p style="color:var(--text-dim);font-size:13px;margin-bottom:10px;">
+                            Nog geen timelapse beelden beschikbaar.
+                        </p>
+                        <button onclick="Cameras.requestDesktop({id:'${cam.id}',rwsPageUrl:'${cam.rwsPageUrl}'},'start_timelapse')"
+                            style="background:var(--accent);border:none;color:#fff;padding:8px 16px;border-radius:6px;font-size:12px;cursor:pointer;">
+                            &#9202; Start timelapse opname
+                        </button>
+                    </div>
+                    ${this.renderButtons(cam, 'timelapse')}`;
+                return;
+            }
+
+            const frames = data.frames;
+            const firstFrame = frames[0].key.split('/').pop().replace('.jpg', '');
+
+            container.innerHTML = `
+                <div style="position:relative;">
+                    <img id="tl-img-${cam.id}" src="/api/timelapse?id=${cam.id}&frame=${firstFrame}"
+                         alt="Timelapse" style="width:100%;border-radius:6px;background:#000;">
+                    <span style="position:absolute;top:8px;right:8px;
+                        background:rgba(0,0,0,0.6);color:#ff9800;padding:2px 8px;border-radius:10px;
+                        font-size:11px;font-weight:600;">&#9202; TIMELAPSE</span>
+                </div>
+                <div style="margin-top:6px;display:flex;align-items:center;gap:8px;">
+                    <button id="tl-play-${cam.id}" onclick="Cameras.toggleTimelapse('${cam.id}')"
+                        style="background:var(--accent);border:none;color:#fff;width:32px;height:24px;border-radius:4px;font-size:11px;cursor:pointer;">
+                        &#9654;</button>
+                    <input id="tl-slider-${cam.id}" type="range" min="0" max="${frames.length - 1}" value="0"
+                        style="flex:1;accent-color:var(--accent);"
+                        oninput="Cameras.seekTimelapse('${cam.id}',this.value)">
+                    <select id="tl-speed-${cam.id}" onchange="Cameras.setTimelapseSpeed('${cam.id}',this.value)"
+                        style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:2px 4px;border-radius:4px;font-size:10px;">
+                        <option value="100">8x</option>
+                        <option value="200">4x</option>
+                        <option value="500" selected>2x</option>
+                        <option value="1000">1x</option>
+                    </select>
+                    <span id="tl-counter-${cam.id}" style="font-size:10px;color:var(--text-dim);min-width:48px;text-align:right;">
+                        1/${frames.length}</span>
+                </div>
+                ${this.renderButtons(cam, 'timelapse')}`;
+
+            this._timelapseData[cam.id] = { frames, index: 0, playing: false, speed: 500, timer: null };
+
+        } catch {
+            container.innerHTML = `
+                <p style="color:var(--text-dim);font-size:12px;padding:12px;">Timelapse niet beschikbaar</p>
+                ${this.renderButtons(cam, 'timelapse')}`;
+        }
+    },
+
+    toggleTimelapse(camId) {
+        const data = this._timelapseData[camId];
+        if (!data) return;
+
+        if (data.playing) {
+            data.playing = false;
+            if (data.timer) clearInterval(data.timer);
+            const btn = document.getElementById(`tl-play-${camId}`);
+            if (btn) btn.innerHTML = '&#9654;';
+        } else {
+            data.playing = true;
+            const btn = document.getElementById(`tl-play-${camId}`);
+            if (btn) btn.innerHTML = '&#10074;&#10074;';
+            this.runTimelapse(camId);
+        }
+    },
+
+    runTimelapse(camId) {
+        const data = this._timelapseData[camId];
+        if (!data) return;
+        if (data.timer) clearInterval(data.timer);
+
+        data.timer = setInterval(() => {
+            if (!data.playing) return;
+            data.index = (data.index + 1) % data.frames.length;
+            this.renderTimelapseFrame(camId);
+        }, data.speed);
+    },
+
+    seekTimelapse(camId, index) {
+        const data = this._timelapseData[camId];
+        if (!data) return;
+        data.index = parseInt(index);
+        this.renderTimelapseFrame(camId);
+    },
+
+    setTimelapseSpeed(camId, speed) {
+        const data = this._timelapseData[camId];
+        if (!data) return;
+        data.speed = parseInt(speed);
+        if (data.playing) this.runTimelapse(camId);
+    },
+
+    renderTimelapseFrame(camId) {
+        const data = this._timelapseData[camId];
+        if (!data || !data.frames[data.index]) return;
+
+        const frameKey = data.frames[data.index].key.split('/').pop().replace('.jpg', '');
+        const img = document.getElementById(`tl-img-${camId}`);
+        const slider = document.getElementById(`tl-slider-${camId}`);
+        const counter = document.getElementById(`tl-counter-${camId}`);
+
+        if (img) img.src = `/api/timelapse?id=${camId}&frame=${frameKey}`;
+        if (slider) slider.value = data.index;
+        if (counter) counter.textContent = `${data.index + 1}/${data.frames.length}`;
+    },
+
+    stopTimelapsePlay(camId) {
+        const data = this._timelapseData[camId];
+        if (data) {
+            data.playing = false;
+            if (data.timer) clearInterval(data.timer);
+        }
     },
 
     renderButtons(cam, active) {
@@ -189,6 +365,7 @@ const Cameras = {
         return `<div style="display:flex;gap:6px;margin-top:6px;align-items:center;flex-wrap:wrap;">
             ${btn('Live', 'live', '&#9679;')}
             ${btn('Snapshot', 'snapshot', '&#128247;')}
+            ${btn('Timelapse', 'timelapse', '&#9202;')}
             ${cam.rwsPageUrl ? `<a href="${cam.rwsPageUrl}" target="_blank" rel="noopener"
                 style="font-size:11px;color:var(--accent);text-decoration:none;margin-left:auto;">
                 Volledig scherm &rarr;</a>` : ''}
@@ -200,8 +377,13 @@ const Cameras = {
         if (!cam) return;
         const containerId = `cam-img-${camId}`;
 
+        this.stopTimelapsePlay(camId);
+
         if (mode === 'live') {
-            this.showLiveView(cam, containerId);
+            this.requestDesktop(cam, 'start_live');
+            this.startLive(cam, containerId);
+        } else if (mode === 'timelapse') {
+            this.showTimelapse(cam, containerId);
         } else {
             this.showSnapshot(cam, containerId);
         }

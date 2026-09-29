@@ -215,6 +215,21 @@ const App = {
         this.loadWikipedia(sighting.lat, sighting.lon);
     },
 
+    onFlightClick(ac) {
+        const callsign = (ac.flight || '').trim();
+        const hex = (ac.hex || '').toUpperCase();
+        const type = ac.t || '';
+        this.openPanel();
+        this.setPanelHeader(callsign || hex, `Vliegtuig${type ? ' — ' + type : ''}`);
+
+        const sections = this.clearSections();
+        sections.camera.innerHTML = Flights.renderHTML(ac);
+
+        if (ac.lat && ac.lon) {
+            this.loadWeather(ac.lat, ac.lon, sections.weather);
+        }
+    },
+
     onPinClick(item) {
         this.openPanel();
         const typeLabel = Pins.TYPES[item.type]?.label || item.type;
@@ -360,6 +375,10 @@ const App = {
     closePanel() {
         document.getElementById('panel').classList.remove('open');
         this.panelOpen = false;
+        Cameras.stopLive();
+        if (this.currentCamera) {
+            Cameras.requestDesktop(this.currentCamera, 'stop_live');
+        }
         this.currentCamera = null;
         Radio.stop();
     },

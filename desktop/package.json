@@ -1,0 +1,14 @@
+{
+  "name": "brionicle-capture",
+  "version": "1.0.0",
+  "description": "Brionicle Desktop - Live camera capture via Puppeteer",
+  "main": "brionicle-capture.js",
+  "scripts": {
+    "start": "node brionicle-capture.js",
+    "debug": "node brionicle-capture.js --debug"
+  },
+  "dependencies": {
+    "puppeteer": "^23.0.0",
+    "@aws-sdk/client-s3": "^3.600.0"
+  }
+}

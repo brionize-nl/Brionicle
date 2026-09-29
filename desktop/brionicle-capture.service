@@ -1,0 +1,15 @@
+[Unit]
+Description=Brionicle Camera Capture
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/Brionicle/desktop
+ExecStart=/usr/bin/node brionicle-capture.js
+Restart=on-failure
+RestartSec=10
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=default.target

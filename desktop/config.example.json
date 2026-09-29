@@ -1,0 +1,15 @@
+{
+  "r2": {
+    "accountId": "JOUW_CLOUDFLARE_ACCOUNT_ID",
+    "bucketName": "brionicle-live",
+    "accessKeyId": "JOUW_R2_ACCESS_KEY_ID",
+    "secretAccessKey": "JOUW_R2_SECRET_ACCESS_KEY"
+  },
+  "appUrl": "https://brionicle.pages.dev",
+  "captureInterval": 2000,
+  "timelapseInterval": 30000,
+  "maxLiveCameras": 3,
+  "pollInterval": 3000,
+  "debug": false,
+  "chromePath": null
+}
