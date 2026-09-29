@@ -169,5 +169,52 @@ const Pins = {
 
         html += `<a href="${channelUrl}" target="_blank" rel="noopener" style="font-size:12px;color:var(--accent);text-decoration:none;">YouTube kanaal openen &rarr;</a>`;
         return html;
+    },
+
+    renderHlsStream(item) {
+        if (!item.streamId) return '';
+        const videoId = `hls-${item.streamId}`;
+        let html = '<h3>Live stream</h3>';
+        html += `<video id="${videoId}" width="100%" height="200" muted autoplay playsinline
+                    style="border-radius:6px;background:#000;margin-bottom:8px;object-fit:cover;"></video>`;
+        html += `<div id="${videoId}-status" style="font-size:11px;color:var(--text-dim);margin-bottom:4px;">Stream laden...</div>`;
+
+        setTimeout(() => {
+            const video = document.getElementById(videoId);
+            const status = document.getElementById(videoId + '-status');
+            if (!video) return;
+            const src = `/api/camera-stream?id=${item.streamId}`;
+
+            if (typeof Hls !== 'undefined' && Hls.isSupported()) {
+                const hls = new Hls({ maxBufferLength: 10, liveSyncDurationCount: 3 });
+                hls.loadSource(src);
+                hls.attachMedia(video);
+                hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                    video.play().catch(() => {});
+                    if (status) status.textContent = 'Live';
+                });
+                hls.on(Hls.Events.ERROR, (_, data) => {
+                    if (data.fatal && status) {
+                        status.innerHTML = 'Stream niet beschikbaar — <a href="' + (item.website || '') + '" target="_blank" rel="noopener" style="color:var(--accent);">bekijk op website</a>';
+                    }
+                });
+                Pins._activeHls = hls;
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                video.src = src;
+                video.play().catch(() => {});
+                if (status) status.textContent = 'Live';
+            } else if (status) {
+                status.innerHTML = 'HLS niet ondersteund — <a href="' + (item.website || '') + '" target="_blank" rel="noopener" style="color:var(--accent);">bekijk op website</a>';
+            }
+        }, 100);
+
+        return html;
+    },
+
+    destroyActiveHls() {
+        if (this._activeHls) {
+            this._activeHls.destroy();
+            this._activeHls = null;
+        }
     }
 };

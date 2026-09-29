@@ -29,7 +29,7 @@
         "lat": 52.1030,
         "lon": 4.2725,
         "country": "NL",
-        "description": "Live beeld van het strand en de pier van Scheveningen",
+        "description": "Live beeld van het strand en de pier van Scheveningen — WebCam.NL 4K",
         "youtubeChannel": "UCz2MHQBxJXQEm97PT_mt0-w",
         "website": "https://webcam.nl/scheveningen/"
     },
@@ -40,7 +40,8 @@
         "lat": 53.0395,
         "lon": 4.8498,
         "country": "NL",
-        "description": "Live cam van de haven van Oudeschild op Texel",
+        "description": "Live cam van de haven van Oudeschild op Texel — WebCam.NL",
+        "youtubeChannel": "UCz2MHQBxJXQEm97PT_mt0-w",
         "website": "https://webcam.nl/texel/"
     },
     {
@@ -50,8 +51,20 @@
         "lat": 52.6183,
         "lon": 4.6228,
         "country": "NL",
-        "description": "Live strandbeeld Egmond aan Zee, Noord-Holland",
+        "description": "Live strandbeeld Egmond aan Zee — WebCam.NL",
+        "youtubeChannel": "UCz2MHQBxJXQEm97PT_mt0-w",
         "website": "https://webcam.nl/egmond/"
+    },
+    {
+        "id": "katwijk-strand",
+        "name": "Katwijk aan Zee strand",
+        "type": "stadscam",
+        "lat": 52.2009,
+        "lon": 4.3875,
+        "country": "NL",
+        "description": "Live strandbeeld Katwijk aan Zee — WebCam.NL 4K",
+        "youtubeChannel": "UCz2MHQBxJXQEm97PT_mt0-w",
+        "website": "https://webcam.nl/katwijk/"
     },
     {
         "id": "zeehonden-pieterburen",
@@ -60,8 +73,20 @@
         "lat": 53.3978,
         "lon": 6.4553,
         "country": "NL",
-        "description": "Zeehondenopvang in Pieterburen — live beelden van zeehonden in herstel",
+        "description": "Zeehondenopvang in Pieterburen — live beelden via WebCam.NL",
+        "youtubeChannel": "UCz2MHQBxJXQEm97PT_mt0-w",
         "website": "https://www.zeehondencentrum.nl"
+    },
+    {
+        "id": "schiphol",
+        "name": "Schiphol Airport planespotting",
+        "type": "stadscam",
+        "lat": 52.3105,
+        "lon": 4.7683,
+        "country": "NL",
+        "description": "Live vliegtuigspotten bij Schiphol — Schipholhotspot",
+        "youtubeChannel": "UCMZlI8kCLiadAeL27XyXXSg",
+        "website": "https://www.schiphol.nl/nl/vliegtuig-spotten/"
     },
     {
         "id": "burgers-zoo",
@@ -91,17 +116,8 @@
         "lon": 4.8932,
         "country": "NL",
         "description": "Live uitzicht over de Dam, het hart van Amsterdam",
+        "streamId": "dam-amsterdam",
         "website": "https://www.skylinewebcams.com/en/webcam/netherlands/north-holland/amsterdam/amsterdam-dam-square.html"
-    },
-    {
-        "id": "schiphol",
-        "name": "Schiphol Airport",
-        "type": "stadscam",
-        "lat": 52.3105,
-        "lon": 4.7683,
-        "country": "NL",
-        "description": "Vliegtuigspotters cam bij Schiphol, Polderbaan",
-        "website": "https://www.schiphol.nl/nl/vliegtuig-spotten/"
     },
     {
         "id": "rotterdam-haven",
@@ -120,7 +136,8 @@
         "lat": 52.0907,
         "lon": 5.1214,
         "country": "NL",
-        "description": "Uitzicht over Utrecht vanuit de Domtoren",
+        "description": "Uitzicht over Utrecht vanuit de Domtoren — WebCam.NL",
+        "youtubeChannel": "UCz2MHQBxJXQEm97PT_mt0-w",
         "website": "https://webcam.nl/utrecht/"
     },
     {
@@ -141,7 +158,7 @@
         "lon": -155.7767,
         "country": "US",
         "description": "Bruine beren vangen zalm bij Brooks Falls, Katmai National Park, Alaska",
-        "youtubeChannel": "UCnzEBbpHIbOBcLM2ga1w7lQ",
+        "youtubeChannel": "UC2Sk0aXLq3ADkH_USGPKT_Q",
         "website": "https://explore.org/livecams/brown-bears/brown-bear-salmon-cam-brooks-falls"
     },
     {
@@ -196,6 +213,9 @@
         "lon": 14.9934,
         "country": "IT",
         "description": "Live beeld van de Etna, een van de actiefste vulkanen ter wereld",
+        "youtubeChannel": "UC2WMV4vCYurHdHPd9pCqYSg",
+        "youtubeVideo": "plYtw4DSf5I",
+        "streamId": "etna-vulkaan",
         "website": "https://www.skylinewebcams.com/en/webcam/italia/sicilia/catania/vulcano-etna.html"
     },
     {
@@ -227,6 +247,7 @@
         "lon": 139.7004,
         "country": "JP",
         "description": "Het drukste zebrapad ter wereld, Shibuya, Tokyo",
+        "streamId": "shibuya-crossing",
         "website": "https://www.skylinewebcams.com/en/webcam/japan/kanto/tokyo/shibuya-crossing.html"
     },
     {
@@ -241,12 +262,15 @@
     },
     {
         "id": "venice",
-        "name": "Venetie — Canal Grande",
+        "name": "Venetie — Rialtobrug",
         "type": "stadscam",
         "lat": 45.4371,
         "lon": 12.3345,
         "country": "IT",
-        "description": "Live uitzicht over het Canal Grande en de Rialtobrug",
+        "description": "Live 4K uitzicht over het Canal Grande en de Rialtobrug",
+        "youtubeChannel": "UC2WMV4vCYurHdHPd9pCqYSg",
+        "youtubeVideo": "Kmf_wiTFuXY",
+        "streamId": "venice",
         "website": "https://www.skylinewebcams.com/en/webcam/italia/veneto/venezia/rialto-bridge.html"
     },
     {
@@ -277,7 +301,7 @@
         "lon": -82.4139,
         "country": "US",
         "description": "Live nestcam van zeearenden in Florida",
-        "youtubeChannel": "UCnzEBbpHIbOBcLM2ga1w7lQ",
+        "youtubeChannel": "UC2Sk0aXLq3ADkH_USGPKT_Q",
         "website": "https://explore.org/livecams/bald-eagles"
     },
     {
@@ -288,6 +312,7 @@
         "lon": -54.4367,
         "country": "BR/AR",
         "description": "Spectaculaire watervallen op de grens van Brazilie en Argentinie",
+        "streamId": "iguazu-falls",
         "website": "https://www.skylinewebcams.com/en/webcam/brasil/parana/foz-do-iguacu/cataratas-do-iguacu.html"
     }
 ]

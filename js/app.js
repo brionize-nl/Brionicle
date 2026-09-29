@@ -236,9 +236,12 @@ const App = {
         this.setPanelHeader(item.name, `${typeLabel} — ${item.country}`);
 
         const sections = this.clearSections();
+        Pins.destroyActiveHls();
 
         if (item.youtubeChannel) {
             sections.camera.innerHTML = Pins.renderYouTube(item) + Pins.renderHTML(item);
+        } else if (item.streamId) {
+            sections.camera.innerHTML = Pins.renderHlsStream(item) + Pins.renderHTML(item);
         } else {
             sections.camera.innerHTML = Pins.renderHTML(item);
         }
