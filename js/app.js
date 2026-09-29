@@ -180,13 +180,11 @@ const App = {
         this.setPanelHeader(cam.name, [cam.road, cam.source].filter(Boolean).join(' — '));
 
         const sections = this.clearSections();
+        sections.camera.innerHTML = Cameras.renderCamera(cam);
         this.loadWeather(cam.lat, cam.lon, sections.weather);
         this.loadSunTimes(cam.lat, cam.lon, sections.sun);
         this.loadAurora(cam.lat, sections.extra);
-
-        setTimeout(() => {
-            sections.camera.innerHTML = Cameras.renderCamera(cam);
-        }, 100);
+        this.loadWikipedia(cam.lat, cam.lon);
     },
 
     onQuakeClick(quake) {

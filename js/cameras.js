@@ -8,49 +8,53 @@ const Cameras = {
 
     async loadRWS() {
         try {
-            const res = await fetch('https://api.rwsverkeersinfo.nl/api/cameras');
-            if (!res.ok) throw new Error(`RWS API status ${res.status}`);
+            const res = await fetch('/api/cameras');
+            if (!res.ok) throw new Error(`API status ${res.status}`);
             const cameras = await res.json();
+            if (!Array.isArray(cameras) || cameras.length === 0) throw new Error('Geen camera data');
+
             return cameras.map(cam => {
-                const imageUrl = cam.image_url || cam.imageUrl || cam.snapshot_url || cam.snapshotUrl || null;
-                const streamUrl = cam.stream_url || cam.streamUrl || null;
-                const staticUrl = cam.static_url || cam.staticUrl || null;
+                const id = cam.id;
+                const road = cam.road || '';
+                const near = cam.near || '';
+                const slug = (road + '-' + near).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+                const rwsPageUrl = `https://www.rwsverkeersinfo.nl/cameras/${id}/${slug}`;
+
                 return {
-                    id: String(cam.id),
-                    name: cam.location_description || cam.locationDescription || 'Camera',
-                    road: cam.road || cam.roadDesignation || '',
-                    lat: parseFloat(cam.latitude),
-                    lon: parseFloat(cam.longitude),
-                    imageUrl,
-                    streamUrl,
-                    staticUrl,
-                    type: imageUrl ? 'image' : 'embed',
+                    id: String(id),
+                    name: cam.location_description || cam.locationDescription || `${road} ${near}`.trim() || 'Camera',
+                    road: road,
+                    near: near,
+                    lat: parseFloat(cam.latitude || cam.lat),
+                    lon: parseFloat(cam.longitude || cam.lon),
+                    rwsPageUrl: rwsPageUrl,
+                    streamUrl: cam.stream_url || cam.streamUrl || null,
                     source: 'Rijkswaterstaat'
                 };
             }).filter(c => !isNaN(c.lat) && !isNaN(c.lon));
         } catch (e) {
-            console.warn('RWS API niet bereikbaar, fallback wordt geladen:', e.message);
+            console.warn('Camera API niet bereikbaar, fallback:', e.message);
             return this.getFallbackCameras();
         }
     },
 
     getFallbackCameras() {
         return [
-            { id: 'rws-4', name: 'A1 Amersfoort', road: 'A1', lat: 52.1561, lon: 5.3878, streamUrl: 'https://stream.inmoves.nl/4/embed', staticUrl: 'https://stream.inmoves.nl/4', type: 'embed', source: 'Rijkswaterstaat' },
-            { id: 'rws-1', name: 'A2 Breukelen', road: 'A2', lat: 52.1728, lon: 4.9927, streamUrl: 'https://stream.inmoves.nl/1/embed', staticUrl: 'https://stream.inmoves.nl/1', type: 'embed', source: 'Rijkswaterstaat' },
-            { id: 'rws-6', name: 'A4 Leidschendam', road: 'A4', lat: 52.0833, lon: 4.3833, streamUrl: 'https://stream.inmoves.nl/6/embed', staticUrl: 'https://stream.inmoves.nl/6', type: 'embed', source: 'Rijkswaterstaat' },
-            { id: 'rws-10', name: 'A10 Amsterdam-West', road: 'A10', lat: 52.3676, lon: 4.8344, streamUrl: 'https://stream.inmoves.nl/10/embed', staticUrl: 'https://stream.inmoves.nl/10', type: 'embed', source: 'Rijkswaterstaat' },
-            { id: 'rws-12', name: 'A12 Den Haag', road: 'A12', lat: 52.0705, lon: 4.3007, streamUrl: 'https://stream.inmoves.nl/12/embed', staticUrl: 'https://stream.inmoves.nl/12', type: 'embed', source: 'Rijkswaterstaat' },
-            { id: 'rws-13', name: 'A13 Delft', road: 'A13', lat: 51.9975, lon: 4.3575, streamUrl: 'https://stream.inmoves.nl/24/embed', staticUrl: 'https://stream.inmoves.nl/24', type: 'embed', source: 'Rijkswaterstaat' },
-            { id: 'rws-15', name: 'A15 Europoort', road: 'A15', lat: 51.8867, lon: 4.3250, streamUrl: 'https://stream.inmoves.nl/15/embed', staticUrl: 'https://stream.inmoves.nl/15', type: 'embed', source: 'Rijkswaterstaat' },
-            { id: 'rws-16', name: 'A16 Dordrecht', road: 'A16', lat: 51.8133, lon: 4.6692, streamUrl: 'https://stream.inmoves.nl/27/embed', staticUrl: 'https://stream.inmoves.nl/27', type: 'embed', source: 'Rijkswaterstaat' },
-            { id: 'rws-20', name: 'A20 Rotterdam', road: 'A20', lat: 51.9400, lon: 4.4300, streamUrl: 'https://stream.inmoves.nl/20/embed', staticUrl: 'https://stream.inmoves.nl/20', type: 'embed', source: 'Rijkswaterstaat' },
-            { id: 'rws-27', name: 'A27 Gorinchem', road: 'A27', lat: 51.8333, lon: 4.9667, streamUrl: 'https://stream.inmoves.nl/53/embed', staticUrl: 'https://stream.inmoves.nl/53', type: 'embed', source: 'Rijkswaterstaat' },
-            { id: 'rws-28', name: 'A28 Amersfoort-Zuid', road: 'A28', lat: 52.1400, lon: 5.3700, streamUrl: 'https://stream.inmoves.nl/28/embed', staticUrl: 'https://stream.inmoves.nl/28', type: 'embed', source: 'Rijkswaterstaat' },
-            { id: 'rws-50', name: 'A50 Eindhoven', road: 'A50', lat: 51.4416, lon: 5.4697, streamUrl: 'https://stream.inmoves.nl/50/embed', staticUrl: 'https://stream.inmoves.nl/50', type: 'embed', source: 'Rijkswaterstaat' },
-            { id: 'rws-58', name: 'A58 Tilburg', road: 'A58', lat: 51.5519, lon: 5.0913, streamUrl: 'https://stream.inmoves.nl/58/embed', staticUrl: 'https://stream.inmoves.nl/58', type: 'embed', source: 'Rijkswaterstaat' },
-            { id: 'rws-7', name: 'A7 Groningen', road: 'A7', lat: 53.2194, lon: 6.5665, streamUrl: 'https://stream.inmoves.nl/7/embed', staticUrl: 'https://stream.inmoves.nl/7', type: 'embed', source: 'Rijkswaterstaat' },
-            { id: 'rws-9', name: 'A9 Haarlem', road: 'A9', lat: 52.3833, lon: 4.6333, streamUrl: 'https://stream.inmoves.nl/9/embed', staticUrl: 'https://stream.inmoves.nl/9', type: 'embed', source: 'Rijkswaterstaat' }
+            { id: '4', name: 'A1 Amersfoort', road: 'A1', near: 'Amersfoort', lat: 52.1561, lon: 5.3878, rwsPageUrl: 'https://www.rwsverkeersinfo.nl/cameras/4/a1-amersfoort', source: 'Rijkswaterstaat' },
+            { id: '1', name: 'A2 Breukelen', road: 'A2', near: 'Breukelen', lat: 52.1728, lon: 4.9927, rwsPageUrl: 'https://www.rwsverkeersinfo.nl/cameras/1/a2-breukelen', source: 'Rijkswaterstaat' },
+            { id: '6', name: 'A4 Leidschendam', road: 'A4', near: 'Leidschendam', lat: 52.0833, lon: 4.3833, rwsPageUrl: 'https://www.rwsverkeersinfo.nl/cameras/6/a4-leidschendam', source: 'Rijkswaterstaat' },
+            { id: '10', name: 'A10 Amsterdam-West', road: 'A10', near: 'Amsterdam', lat: 52.3676, lon: 4.8344, rwsPageUrl: 'https://www.rwsverkeersinfo.nl/cameras/10/a10-amsterdam', source: 'Rijkswaterstaat' },
+            { id: '12', name: 'A12 Den Haag', road: 'A12', near: 'Den Haag', lat: 52.0705, lon: 4.3007, rwsPageUrl: 'https://www.rwsverkeersinfo.nl/cameras/12/a12-den-haag', source: 'Rijkswaterstaat' },
+            { id: '13', name: 'A13 Delft', road: 'A13', near: 'Delft', lat: 51.9975, lon: 4.3575, rwsPageUrl: 'https://www.rwsverkeersinfo.nl/cameras/13/a13-delft', source: 'Rijkswaterstaat' },
+            { id: '15', name: 'A15 Europoort', road: 'A15', near: 'Europoort', lat: 51.8867, lon: 4.3250, rwsPageUrl: 'https://www.rwsverkeersinfo.nl/cameras/15/a15-europoort', source: 'Rijkswaterstaat' },
+            { id: '16', name: 'A16 Dordrecht', road: 'A16', near: 'Dordrecht', lat: 51.8133, lon: 4.6692, rwsPageUrl: 'https://www.rwsverkeersinfo.nl/cameras/16/a16-dordrecht', source: 'Rijkswaterstaat' },
+            { id: '20', name: 'A20 Rotterdam', road: 'A20', near: 'Rotterdam', lat: 51.9400, lon: 4.4300, rwsPageUrl: 'https://www.rwsverkeersinfo.nl/cameras/20/a20-rotterdam', source: 'Rijkswaterstaat' },
+            { id: '27', name: 'A27 Gorinchem', road: 'A27', near: 'Gorinchem', lat: 51.8333, lon: 4.9667, rwsPageUrl: 'https://www.rwsverkeersinfo.nl/cameras/27/a27-gorinchem', source: 'Rijkswaterstaat' },
+            { id: '28', name: 'A28 Amersfoort-Zuid', road: 'A28', near: 'Amersfoort', lat: 52.1400, lon: 5.3700, rwsPageUrl: 'https://www.rwsverkeersinfo.nl/cameras/28/a28-amersfoort', source: 'Rijkswaterstaat' },
+            { id: '50', name: 'A50 Eindhoven', road: 'A50', near: 'Eindhoven', lat: 51.4416, lon: 5.4697, rwsPageUrl: 'https://www.rwsverkeersinfo.nl/cameras/50/a50-eindhoven', source: 'Rijkswaterstaat' },
+            { id: '58', name: 'A58 Tilburg', road: 'A58', near: 'Tilburg', lat: 51.5519, lon: 5.0913, rwsPageUrl: 'https://www.rwsverkeersinfo.nl/cameras/58/a58-tilburg', source: 'Rijkswaterstaat' },
+            { id: '7', name: 'A7 Groningen', road: 'A7', near: 'Groningen', lat: 53.2194, lon: 6.5665, rwsPageUrl: 'https://www.rwsverkeersinfo.nl/cameras/7/a7-groningen', source: 'Rijkswaterstaat' },
+            { id: '9', name: 'A9 Haarlem', road: 'A9', near: 'Haarlem', lat: 52.3833, lon: 4.6333, rwsPageUrl: 'https://www.rwsverkeersinfo.nl/cameras/9/a9-haarlem', source: 'Rijkswaterstaat' }
         ];
     },
 
@@ -89,32 +93,26 @@ const Cameras = {
     },
 
     renderCamera(cam) {
-        if (cam.imageUrl) {
-            const cacheBust = Date.now();
-            return `
-                <img src="${cam.imageUrl}?t=${cacheBust}"
-                     alt="${cam.name}"
-                     onerror="this.parentElement.innerHTML='<div class=\\'error\\'>Beeld kon niet worden geladen</div>'"
-                     loading="lazy">
-                <button class="camera-refresh" onclick="App.refreshCamera()" title="Ververs beeld">&#8635;</button>
-            `;
+        const parts = [];
+
+        if (cam.road) {
+            parts.push(`<p style="font-size:13px;color:var(--text);margin-bottom:6px;">Snelweg <b>${cam.road}</b>${cam.near ? ' bij ' + cam.near : ''}</p>`);
         }
 
-        if (cam.streamUrl) {
-            return `
-                <iframe src="${cam.streamUrl}"
-                        width="100%"
-                        height="220"
-                        frameborder="0"
-                        allowfullscreen
-                        loading="lazy"
-                        style="border-radius: 6px; background: #000;">
-                </iframe>
-                <p style="font-size:11px;color:var(--text-dim);margin-top:6px;">Stream laadt niet? <a href="${cam.staticUrl || cam.streamUrl}" target="_blank" rel="noopener" style="color:var(--accent);">Open direct &rarr;</a></p>
-                <button class="camera-refresh" onclick="App.refreshCamera()" title="Ververs beeld">&#8635;</button>
-            `;
+        if (cam.rwsPageUrl) {
+            parts.push(`
+                <a href="${cam.rwsPageUrl}" target="_blank" rel="noopener"
+                   style="display:flex;align-items:center;gap:8px;padding:14px 16px;
+                          background:var(--accent);color:#fff;text-decoration:none;
+                          border-radius:8px;font-size:14px;font-weight:600;
+                          margin:8px 0;justify-content:center;">
+                    &#9654; Bekijk live camera
+                </a>
+            `);
         }
 
-        return '<div class="loading">Geen beeld beschikbaar voor deze camera</div>';
+        parts.push(`<p style="font-size:11px;color:var(--text-dim);margin-top:4px;">Bron: ${cam.source || 'Rijkswaterstaat'} &mdash; opent op rwsverkeersinfo.nl</p>`);
+
+        return parts.join('');
     }
 };
