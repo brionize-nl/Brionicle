@@ -421,38 +421,55 @@ class BrionicleCapture {
 
     async scanFramesForStream(page, id) {
         try {
-            const frames = page.frames();
-            this.log(`  Scan ${frames.length} frame(s) voor m3u8 URLs...`);
-            for (const frame of frames) {
-                try {
-                    const frameUrl = frame.url();
-                    if (frameUrl.includes('inmoves.nl')) {
-                        this.log(`  Inmoves iframe gevonden: ${frameUrl.slice(0, 80)}`);
-                    }
-                    const m3u8 = await frame.evaluate(() => {
-                        const video = document.querySelector('video');
-                        if (video) {
-                            if (video.src && video.src.includes('.m3u8')) return video.src;
-                            const source = video.querySelector('source[src*=".m3u8"]');
-                            if (source) return source.src;
-                        }
-                        const scripts = document.querySelectorAll('script');
-                        for (const s of scripts) {
-                            const text = s.textContent || '';
-                            const match = text.match(/(https?:\/\/[^\s"']+\.m3u8[^\s"']*)/);
-                            if (match) return match[1];
-                        }
-                        return null;
-                    }).catch(() => null);
-                    if (m3u8 && m3u8.includes('inmoves.nl')) {
-                        await this.storeStreamUrl(id, m3u8);
-                        return;
-                    }
-                } catch {}
+            // Zoek de inmoves.nl iframe src op de RWS pagina
+            const iframeSrc = await page.evaluate(() => {
+                const iframes = document.querySelectorAll('iframe');
+                for (const iframe of iframes) {
+                    if (iframe.src && iframe.src.includes('inmoves.nl')) return iframe.src;
+                }
+                return null;
+            });
+
+            if (!iframeSrc) {
+                this.log('  Geen inmoves iframe gevonden');
+                return;
             }
-            this.log('  Geen m3u8 URL gevonden in frames');
+
+            this.log(`  Inmoves embed openen: ${iframeSrc.slice(0, 80)}`);
+
+            // Open de embed URL als eigen pagina — dan is het geen cross-origin meer
+            const streamPage = await this.browser.newPage();
+            let found = false;
+
+            const cdp2 = await streamPage.target().createCDPSession();
+            await cdp2.send('Network.enable');
+            cdp2.on('Network.responseReceived', (params) => {
+                if (found) return;
+                const resUrl = params.response.url || '';
+                const ct = params.response.headers['content-type'] || params.response.headers['Content-Type'] || '';
+                if ((resUrl.includes('.m3u8') || ct.includes('mpegurl')) && resUrl.includes('inmoves')) {
+                    found = true;
+                    this.storeStreamUrl(id, resUrl);
+                }
+            });
+
+            await streamPage.setUserAgent(
+                'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
+            );
+            await streamPage.setExtraHTTPHeaders({ 'Referer': 'https://www.rwsverkeersinfo.nl/' });
+
+            await streamPage.goto(iframeSrc, { waitUntil: 'networkidle2', timeout: 15000 }).catch(() => {});
+
+            if (!found) {
+                this.log('  Wachten op m3u8 laden...');
+                await this.sleep(5000);
+            }
+
+            try { await streamPage.close(); } catch {}
+
+            if (!found) this.log('  Geen m3u8 URL gevonden via embed pagina');
         } catch (err) {
-            if (this.config.debug) this.log(`  Frame scan fout: ${err.message}`);
+            this.log(`  Stream scan fout: ${err.message}`);
         }
     }
 
