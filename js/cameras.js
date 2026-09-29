@@ -106,8 +106,7 @@ const Cameras = {
         this.stopLive();
         this.stopTimelapsePlay(cam.id);
 
-        this.requestDesktop(cam, 'start_live');
-        setTimeout(() => this.startLive(cam, containerId), 50);
+        setTimeout(() => this.showDirect(cam, containerId), 50);
 
         let html = '';
         if (cam.road) {
@@ -170,6 +169,48 @@ const Cameras = {
                 : '<p style="color:var(--text-dim);font-size:12px;">Camera niet beschikbaar</p>';
         };
         img.src = `/api/camera-image?id=${cam.id}&t=${Date.now()}`;
+    },
+
+    showDirect(cam, containerId) {
+        const container = document.getElementById(containerId);
+        if (!container || !cam.rwsPageUrl) {
+            this.startLive(cam, containerId);
+            return;
+        }
+        this.stopLive();
+
+        container.innerHTML = `
+            <div style="position:relative;border-radius:6px;overflow:hidden;background:#000;">
+                <iframe id="cam-direct-${cam.id}" src="${cam.rwsPageUrl}"
+                    style="width:100%;height:320px;border:none;"
+                    sandbox="allow-scripts allow-same-origin allow-popups"
+                    loading="lazy"></iframe>
+                <span style="position:absolute;top:8px;right:8px;
+                    background:rgba(0,0,0,0.6);color:#4caf50;padding:2px 8px;border-radius:10px;
+                    font-size:11px;font-weight:600;display:flex;align-items:center;gap:4px;">
+                    <span style="width:6px;height:6px;background:#4caf50;border-radius:50%;display:inline-block;animation:blink 1s infinite;"></span>
+                    DIRECT LIVE
+                </span>
+            </div>
+            ${this.renderButtons(cam, 'direct')}`;
+
+        const iframe = document.getElementById(`cam-direct-${cam.id}`);
+        if (iframe) {
+            iframe.onerror = () => {
+                this.requestDesktop(cam, 'start_live');
+                this.startLive(cam, containerId);
+            };
+            setTimeout(() => {
+                try {
+                    const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+                    if (!iframeDoc || !iframeDoc.body || iframeDoc.body.innerHTML === '') {
+                        this.requestDesktop(cam, 'start_live');
+                        this.startLive(cam, containerId);
+                    }
+                } catch {
+                }
+            }, 5000);
+        }
     },
 
     showLiveView(cam, containerId, source) {
@@ -363,6 +404,7 @@ const Cameras = {
         };
 
         return `<div style="display:flex;gap:6px;margin-top:6px;align-items:center;flex-wrap:wrap;">
+            ${btn('Direct', 'direct', '&#9654;')}
             ${btn('Live', 'live', '&#9679;')}
             ${btn('Snapshot', 'snapshot', '&#128247;')}
             ${btn('Timelapse', 'timelapse', '&#9202;')}
@@ -379,7 +421,9 @@ const Cameras = {
 
         this.stopTimelapsePlay(camId);
 
-        if (mode === 'live') {
+        if (mode === 'direct') {
+            this.showDirect(cam, containerId);
+        } else if (mode === 'live') {
             this.requestDesktop(cam, 'start_live');
             this.startLive(cam, containerId);
         } else if (mode === 'timelapse') {
