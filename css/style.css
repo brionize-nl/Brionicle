@@ -34,7 +34,7 @@ html, body {
 }
 
 .leaflet-tile-pane {
-    filter: brightness(0.85) contrast(1.1) saturate(0.8);
+    filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(1.2) saturate(0.4);
 }
 
 .camera-marker {
