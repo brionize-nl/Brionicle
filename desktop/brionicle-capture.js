@@ -61,6 +61,8 @@ class BrionicleCapture {
                 '--no-first-run',
                 '--mute-audio',
                 '--disable-popup-blocking',
+                '--disable-site-isolation-trials',
+                '--disable-features=IsolateOrigins,site-per-process',
             ],
             ...(this.config.chromePath ? { executablePath: this.config.chromePath } : {}),
         });
@@ -153,12 +155,15 @@ class BrionicleCapture {
             const toggled = await this.clickLiveToggle(page);
             if (toggled) {
                 this.log(`  Live stream toggle aangeklikt (${toggled})`);
-                await this.sleep(3000);
+                await this.sleep(5000);
             } else {
                 this.log('  Geen live stream toggle gevonden');
             }
 
-            // Stap 2: Maak video/iframe fullscreen (vult heel het venster)
+            // Stap 2: Scan alle frames voor m3u8 URLs (fallback als CDP niet vangt)
+            await this.scanFramesForStream(page, id);
+
+            // Stap 3: Maak video/iframe fullscreen (vult heel het venster)
             const madeFullscreen = await this.makeVideoFullscreen(page);
             if (madeFullscreen) {
                 this.log(`  Fullscreen: ${madeFullscreen}`);
@@ -412,6 +417,43 @@ class BrionicleCapture {
 
     timestamp() {
         return new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    }
+
+    async scanFramesForStream(page, id) {
+        try {
+            const frames = page.frames();
+            this.log(`  Scan ${frames.length} frame(s) voor m3u8 URLs...`);
+            for (const frame of frames) {
+                try {
+                    const frameUrl = frame.url();
+                    if (frameUrl.includes('inmoves.nl')) {
+                        this.log(`  Inmoves iframe gevonden: ${frameUrl.slice(0, 80)}`);
+                    }
+                    const m3u8 = await frame.evaluate(() => {
+                        const video = document.querySelector('video');
+                        if (video) {
+                            if (video.src && video.src.includes('.m3u8')) return video.src;
+                            const source = video.querySelector('source[src*=".m3u8"]');
+                            if (source) return source.src;
+                        }
+                        const scripts = document.querySelectorAll('script');
+                        for (const s of scripts) {
+                            const text = s.textContent || '';
+                            const match = text.match(/(https?:\/\/[^\s"']+\.m3u8[^\s"']*)/);
+                            if (match) return match[1];
+                        }
+                        return null;
+                    }).catch(() => null);
+                    if (m3u8 && m3u8.includes('inmoves.nl')) {
+                        await this.storeStreamUrl(id, m3u8);
+                        return;
+                    }
+                } catch {}
+            }
+            this.log('  Geen m3u8 URL gevonden in frames');
+        } catch (err) {
+            if (this.config.debug) this.log(`  Frame scan fout: ${err.message}`);
+        }
     }
 
     async storeStreamUrl(id, url) {
