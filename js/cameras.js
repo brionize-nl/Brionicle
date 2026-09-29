@@ -106,7 +106,8 @@ const Cameras = {
         this.stopLive();
         this.stopTimelapsePlay(cam.id);
 
-        setTimeout(() => this.showDirect(cam, containerId), 50);
+        this.requestDesktop(cam, 'start_live');
+        setTimeout(() => this.startLive(cam, containerId), 50);
 
         let html = '';
         if (cam.road) {
