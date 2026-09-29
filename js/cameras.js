@@ -31,7 +31,6 @@ const Cameras = {
                     lat: parseFloat(cam.latitude || cam.lat),
                     lon: parseFloat(cam.longitude || cam.lon),
                     rwsPageUrl: rwsPageUrl,
-                    embedUrl: cam.stream_url || cam.streamUrl || '',
                     source: 'Rijkswaterstaat'
                 };
             }).filter(c => !isNaN(c.lat) && !isNaN(c.lon));
@@ -100,7 +99,6 @@ const Cameras = {
             clearInterval(this.liveInterval);
             this.liveInterval = null;
         }
-        this.destroyHls();
     },
 
     renderCamera(cam) {
@@ -177,17 +175,9 @@ const Cameras = {
         const container = document.getElementById(containerId);
         if (!container) return;
         this.stopLive();
-        this.destroyHls();
 
         this.requestDesktop(cam, 'start_live');
         this.startLive(cam, containerId);
-    },
-
-    destroyHls() {
-        if (this._hls) {
-            this._hls.destroy();
-            this._hls = null;
-        }
     },
 
     showLiveView(cam, containerId, source) {
@@ -381,7 +371,7 @@ const Cameras = {
         };
 
         return `<div style="display:flex;gap:6px;margin-top:6px;align-items:center;flex-wrap:wrap;">
-            ${btn('Stream', 'stream', '&#9654;')}
+            ${btn('Live', 'stream', '&#9654;')}
             ${btn('Snapshot', 'snapshot', '&#128247;')}
             ${btn('Timelapse', 'timelapse', '&#9202;')}
             ${cam.rwsPageUrl ? `<a href="${cam.rwsPageUrl}" target="_blank" rel="noopener"
@@ -396,7 +386,6 @@ const Cameras = {
         const containerId = `cam-img-${camId}`;
 
         this.stopTimelapsePlay(camId);
-        this.destroyHls();
 
         if (mode === 'stream') {
             this.showStream(cam, containerId);

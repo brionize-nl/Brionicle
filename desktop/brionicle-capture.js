@@ -320,40 +320,6 @@ class BrionicleCapture {
         }
     }
 
-    async findStreamIframe(page) {
-        try {
-            const iframes = await page.$$('iframe');
-            for (const iframe of iframes) {
-                const src = await iframe.evaluate(el => el.src || '');
-                if (src && (src.includes('inmoves') || src.includes('stream') || src.includes('video'))) {
-                    return iframe;
-                }
-            }
-        } catch {}
-        return null;
-    }
-
-    async clickByText(page, textMatches) {
-        try {
-            const result = await page.evaluate((texts) => {
-                const els = [...document.querySelectorAll('a, button, [role="button"], [onclick]')];
-                for (const text of texts) {
-                    for (const el of els) {
-                        const content = (el.textContent || '').trim().toLowerCase();
-                        if (content.includes(text) && el.offsetParent !== null) {
-                            el.click();
-                            return content.slice(0, 40);
-                        }
-                    }
-                }
-                return null;
-            }, textMatches);
-            return result;
-        } catch {
-            return null;
-        }
-    }
-
     async capture(id) {
         const cam = this.cameras.get(id);
         if (!cam || cam.stopped) return;
@@ -443,7 +409,6 @@ class BrionicleCapture {
         this.log(`Camera ${id} stoppen`);
         cam.stopped = true;
         if (cam.timer) clearInterval(cam.timer);
-        try { if (cam.popupPage) await cam.popupPage.close(); } catch {}
         try { await cam.page.close(); } catch {}
         this.cameras.delete(id);
     }
