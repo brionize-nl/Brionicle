@@ -65,7 +65,7 @@ class BrionicleCapture {
 
             for (const cam of skylineCams) {
                 if (!this.running) break;
-                await this.startSkylineStream({ id: cam.streamId, skylineUrl: cam.website });
+                await this.startSkylineStream({ id: cam.streamId, skylineUrl: cam.website, skylineId: cam.skylineId });
                 await this.sleep(3000);
             }
         } catch (err) {
@@ -508,18 +508,58 @@ class BrionicleCapture {
     }
 
     async startSkylineStream(spec) {
-        const { id, skylineUrl } = spec;
+        const { id, skylineUrl, skylineId } = spec;
         this._starting.add(id);
         this.log(`SkylineWebcams ${id} starten: ${skylineUrl}`);
 
         try {
-            const page = await this.browser.newPage();
+            let found = false;
+            const onM3u8 = (resUrl) => {
+                if (found) return;
+                found = true;
+                this.storeStreamUrl(id, resUrl);
+                this.log(`  SkylineWebcams m3u8 gevonden: ${resUrl.slice(0, 100)}`);
+            };
+
+            // Poging 1: Webcam pagina laden
+            found = await this.trySkylinePage(skylineUrl, onM3u8);
+
+            // Poging 2: Embed pagina proberen (simpeler, minder overlays)
+            if (!found && skylineId) {
+                this.log(`  Poging 2: embed pagina voor skylineId ${skylineId}`);
+                const embedUrl = `https://www.skylinewebcams.com/webcam.html?id=${skylineId}`;
+                found = await this.trySkylinePage(embedUrl, onM3u8);
+            }
+
+            // Poging 3: Directe iframe embed URL
+            if (!found && skylineId) {
+                this.log(`  Poging 3: iframe embed voor skylineId ${skylineId}`);
+                const iframeUrl = `https://embed.skylinewebcams.com/embed/${skylineId}.html`;
+                found = await this.trySkylinePage(iframeUrl, onM3u8);
+            }
+
+            if (found) {
+                this.log(`  SkylineWebcams ${id}: stream URL opgeslagen`);
+            } else {
+                this.log(`  SkylineWebcams ${id}: geen stream gevonden na alle pogingen`);
+            }
+        } catch (err) {
+            this.log(`  SkylineWebcams ${id} mislukt: ${err.message}`);
+        } finally {
+            this._starting.delete(id);
+        }
+    }
+
+    async trySkylinePage(url, onM3u8) {
+        let found = false;
+        let page;
+        try {
+            page = await this.browser.newPage();
             await page.setViewport({ width: 1280, height: 720 });
             await page.setUserAgent(
                 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
             );
 
-            let found = false;
             const cdp = await page.target().createCDPSession();
             await cdp.send('Network.enable');
             cdp.on('Network.responseReceived', (params) => {
@@ -528,12 +568,11 @@ class BrionicleCapture {
                 const ct = params.response.headers['content-type'] || params.response.headers['Content-Type'] || '';
                 if ((resUrl.includes('.m3u8') || ct.includes('mpegurl')) && resUrl.includes('skylinewebcams')) {
                     found = true;
-                    this.storeStreamUrl(id, resUrl);
-                    this.log(`  SkylineWebcams m3u8 gevonden: ${resUrl.slice(0, 100)}`);
+                    onM3u8(resUrl);
                 }
             });
 
-            await page.goto(skylineUrl, { waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => {});
+            await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 }).catch(() => {});
             await this.sleep(3000);
 
             await this.dismissSkylineOverlays(page);
@@ -550,28 +589,19 @@ class BrionicleCapture {
             }
 
             if (!found) {
-                this.log(`  SkylineWebcams ${id}: geen m3u8 gevonden, retry met klik op video`);
                 await page.evaluate(() => {
                     const video = document.querySelector('video');
-                    if (video) { video.play().catch(() => {}); }
+                    if (video) { video.muted = true; video.play().catch(() => {}); }
                     const playBtn = document.querySelector('.vjs-big-play-button, .play-button, [class*="play"]');
                     if (playBtn) playBtn.click();
                 });
                 await this.sleep(5000);
             }
-
-            if (found) {
-                this.log(`  SkylineWebcams ${id}: stream URL opgeslagen`);
-            } else {
-                this.log(`  SkylineWebcams ${id}: geen stream gevonden`);
-            }
-
-            try { await page.close(); } catch {}
         } catch (err) {
-            this.log(`  SkylineWebcams ${id} mislukt: ${err.message}`);
-        } finally {
-            this._starting.delete(id);
+            this.log(`  Pagina laden mislukt (${url.slice(0, 60)}): ${err.message}`);
         }
+        try { if (page) await page.close(); } catch {}
+        return found;
     }
 
     async dismissSkylineOverlays(page) {
