@@ -31,7 +31,7 @@
         "country": "NL",
         "description": "Live beeld van het strand en de pier van Scheveningen",
         "youtubeChannel": "UCz2MHQBxJXQEm97PT_mt0-w",
-        "website": "https://www.webcam.nl/scheveningen/"
+        "website": "https://webcam.nl/scheveningen/"
     },
     {
         "id": "texel-haven",
@@ -41,7 +41,7 @@
         "lon": 4.8498,
         "country": "NL",
         "description": "Live cam van de haven van Oudeschild op Texel",
-        "website": "https://www.webcam.nl/texel/"
+        "website": "https://webcam.nl/texel/"
     },
     {
         "id": "egmond-strand",
@@ -51,7 +51,7 @@
         "lon": 4.6228,
         "country": "NL",
         "description": "Live strandbeeld Egmond aan Zee, Noord-Holland",
-        "website": "https://www.webcam.nl/egmond/"
+        "website": "https://webcam.nl/egmond/"
     },
     {
         "id": "zeehonden-pieterburen",
@@ -121,7 +121,7 @@
         "lon": 5.1214,
         "country": "NL",
         "description": "Uitzicht over Utrecht vanuit de Domtoren",
-        "website": "https://www.webcam.nl/utrecht/"
+        "website": "https://webcam.nl/utrecht/"
     },
     {
         "id": "wadden-zeehonden",
