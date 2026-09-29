@@ -181,14 +181,29 @@ class BrionicleCapture {
         const video = await page.$('video');
         if (video) {
             this.log('  Video al actief');
+            await this.tryFullscreen(page);
             return;
+        }
+
+        const textMatches = ['livestream', 'live stream', 'live', 'afspelen', 'play', 'bekijk live'];
+        const clicked = await this.clickByText(page, textMatches);
+
+        if (clicked) {
+            this.log(`  Klik op: "${clicked}"`);
+            await this.sleep(4000);
+
+            const v = await page.$('video');
+            if (v) {
+                this.log('  Video gestart!');
+                await this.tryFullscreen(page);
+                return;
+            }
         }
 
         const playSelectors = [
             'button[class*="play"]', '.play-button', '.vjs-big-play-button',
             '[data-action="play"]', 'button[aria-label*="afspelen"]',
             'button[aria-label*="play" i]', '.player-overlay', '.video-play',
-            'a[class*="stream"]', 'button[class*="stream"]', '.livestream-button',
         ];
 
         for (const sel of playSelectors) {
@@ -196,12 +211,13 @@ class BrionicleCapture {
                 const btn = await page.$(sel);
                 if (btn && await btn.isIntersectingViewport()) {
                     await btn.click();
-                    this.log(`  Klik op: ${sel}`);
-                    await this.sleep(1500);
+                    this.log(`  Klik op selector: ${sel}`);
+                    await this.sleep(3000);
 
                     const v = await page.$('video');
                     if (v) {
                         this.log('  Video gestart!');
+                        await this.tryFullscreen(page);
                         return;
                     }
                 }
@@ -211,15 +227,99 @@ class BrionicleCapture {
         this.log('  Geen video gevonden, screenshot van hele pagina');
     }
 
+    async clickByText(page, textMatches) {
+        try {
+            const result = await page.evaluate((texts) => {
+                const els = [...document.querySelectorAll('a, button, [role="button"], [onclick]')];
+                for (const text of texts) {
+                    for (const el of els) {
+                        const content = (el.textContent || '').trim().toLowerCase();
+                        if (content.includes(text) && el.offsetParent !== null) {
+                            el.click();
+                            return content.slice(0, 40);
+                        }
+                    }
+                }
+                return null;
+            }, textMatches);
+            return result;
+        } catch {
+            return null;
+        }
+    }
+
+    async tryFullscreen(page) {
+        await this.sleep(2000);
+
+        const fullscreenTexts = ['popup', 'volledig scherm', 'fullscreen', 'nieuw venster', 'extern'];
+        const clicked = await this.clickByText(page, fullscreenTexts);
+        if (clicked) {
+            this.log(`  Fullscreen klik: "${clicked}"`);
+            await this.sleep(2000);
+            return;
+        }
+
+        const fsSelectors = [
+            'button[class*="fullscreen"]', 'button[class*="popup"]',
+            'button[aria-label*="volledig"]', 'button[aria-label*="fullscreen" i]',
+            'button[aria-label*="popup" i]', '.vjs-fullscreen-control',
+            'button[title*="popup" i]', 'button[title*="fullscreen" i]',
+            'button[title*="volledig" i]',
+        ];
+
+        for (const sel of fsSelectors) {
+            try {
+                const btn = await page.$(sel);
+                if (btn) {
+                    await btn.click();
+                    this.log(`  Fullscreen selector: ${sel}`);
+                    await this.sleep(2000);
+                    return;
+                }
+            } catch {}
+        }
+    }
+
     async capture(id, page, mode) {
         try {
             let buf;
 
-            const video = await page.$('video');
+            const pages = await this.browser.pages();
+            let targetPage = page;
+            for (const p of pages) {
+                if (p !== page) {
+                    try {
+                        const url = p.url();
+                        if (url.includes('stream') || url.includes('video') || url.includes('live') || url.includes('inmoves')) {
+                            targetPage = p;
+                            this.log(`  Popup venster gevonden: ${url.slice(0, 60)}`);
+                            break;
+                        }
+                    } catch {}
+                }
+            }
+
+            const video = await targetPage.$('video');
             if (video) {
                 const box = await video.boundingBox();
                 if (box && box.width > 50 && box.height > 50) {
                     buf = await video.screenshot({ type: 'jpeg', quality: 85 });
+                }
+            }
+
+            if (!buf || buf.length < 2000) {
+                const iframe = await targetPage.$('iframe[src*="stream"], iframe[src*="video"], iframe[src*="live"], iframe[src*="inmoves"]');
+                if (iframe) {
+                    const frame = await iframe.contentFrame();
+                    if (frame) {
+                        const frameVideo = await frame.$('video');
+                        if (frameVideo) {
+                            const box = await frameVideo.boundingBox();
+                            if (box && box.width > 50 && box.height > 50) {
+                                buf = await iframe.screenshot({ type: 'jpeg', quality: 85 });
+                            }
+                        }
+                    }
                 }
             }
 
@@ -230,7 +330,7 @@ class BrionicleCapture {
                 ];
                 for (const sel of fallbackSelectors) {
                     try {
-                        const el = await page.$(sel);
+                        const el = await targetPage.$(sel);
                         if (el) {
                             const box = await el.boundingBox();
                             if (box && box.width > 100 && box.height > 50) {
@@ -243,7 +343,7 @@ class BrionicleCapture {
             }
 
             if (!buf || buf.length < 2000) {
-                buf = await page.screenshot({
+                buf = await targetPage.screenshot({
                     type: 'jpeg', quality: 80,
                     clip: { x: 0, y: 0, width: 1280, height: 720 },
                 });
