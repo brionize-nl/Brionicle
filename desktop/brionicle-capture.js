@@ -508,7 +508,8 @@ class BrionicleCapture {
     }
 
     async startSkylineStream(spec) {
-        const { id, skylineUrl, skylineId } = spec;
+        const { id, skylineUrl } = spec;
+        let { skylineId } = spec;
         this._starting.add(id);
         this.log(`SkylineWebcams ${id} starten: ${skylineUrl}`);
 
@@ -521,21 +522,26 @@ class BrionicleCapture {
                 this.log(`  SkylineWebcams m3u8 gevonden: ${resUrl.slice(0, 100)}`);
             };
 
-            // Poging 1: Webcam pagina laden
-            found = await this.trySkylinePage(skylineUrl, onM3u8);
+            // Poging 1: Webcam pagina laden + skylineId detecteren
+            const result = await this.trySkylinePage(skylineUrl, onM3u8, true);
+            found = result.found;
+            if (!skylineId && result.detectedId) {
+                skylineId = result.detectedId;
+                this.log(`  SkylineId automatisch gedetecteerd: ${skylineId}`);
+            }
 
             // Poging 2: Embed pagina proberen (simpeler, minder overlays)
             if (!found && skylineId) {
                 this.log(`  Poging 2: embed pagina voor skylineId ${skylineId}`);
                 const embedUrl = `https://www.skylinewebcams.com/webcam.html?id=${skylineId}`;
-                found = await this.trySkylinePage(embedUrl, onM3u8);
+                found = (await this.trySkylinePage(embedUrl, onM3u8, false)).found;
             }
 
             // Poging 3: Directe iframe embed URL
             if (!found && skylineId) {
                 this.log(`  Poging 3: iframe embed voor skylineId ${skylineId}`);
                 const iframeUrl = `https://embed.skylinewebcams.com/embed/${skylineId}.html`;
-                found = await this.trySkylinePage(iframeUrl, onM3u8);
+                found = (await this.trySkylinePage(iframeUrl, onM3u8, false)).found;
             }
 
             if (found) {
@@ -550,8 +556,9 @@ class BrionicleCapture {
         }
     }
 
-    async trySkylinePage(url, onM3u8) {
+    async trySkylinePage(url, onM3u8, detectId = false) {
         let found = false;
+        let detectedId = null;
         let page;
         try {
             page = await this.browser.newPage();
@@ -570,10 +577,25 @@ class BrionicleCapture {
                     found = true;
                     onM3u8(resUrl);
                 }
+                if (!detectedId) {
+                    const idMatch = resUrl.match(/\/(\d{3,5})\.(jpg|m3u8|mp4)/) || resUrl.match(/[?&]id=(\d{3,5})/);
+                    if (idMatch) detectedId = parseInt(idMatch[1]);
+                }
             });
 
             await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 }).catch(() => {});
             await this.sleep(3000);
+
+            if (detectId && !detectedId) {
+                detectedId = await page.evaluate(() => {
+                    const html = document.documentElement.innerHTML;
+                    const m = html.match(/embed\.skylinewebcams\.com\/img\/(\d+)/) ||
+                              html.match(/webcam_id["':=\s]+(\d{3,5})/) ||
+                              html.match(/data-id=["'](\d{3,5})["']/) ||
+                              html.match(/\/embed\/(\d{3,5})\.html/);
+                    return m ? parseInt(m[1]) : null;
+                }).catch(() => null);
+            }
 
             await this.dismissSkylineOverlays(page);
             await this.sleep(2000);
@@ -601,7 +623,7 @@ class BrionicleCapture {
             this.log(`  Pagina laden mislukt (${url.slice(0, 60)}): ${err.message}`);
         }
         try { if (page) await page.close(); } catch {}
-        return found;
+        return { found, detectedId };
     }
 
     async dismissSkylineOverlays(page) {
