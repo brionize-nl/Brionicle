@@ -134,15 +134,15 @@ class BrionicleCapture {
                 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
             );
 
-            // Luister naar netwerk responses voor m3u8 URL ontdekking
-            page.on('response', async (response) => {
-                try {
-                    const resUrl = response.url();
-                    const ct = response.headers()['content-type'] || '';
-                    if ((resUrl.includes('.m3u8') || ct.includes('mpegurl')) && resUrl.includes('inmoves.nl')) {
-                        await this.storeStreamUrl(id, resUrl);
-                    }
-                } catch {}
+            // CDP vangt ALLE netwerk responses op, ook vanuit cross-origin iframes (inmoves.nl)
+            const cdp = await page.target().createCDPSession();
+            await cdp.send('Network.enable');
+            cdp.on('Network.responseReceived', (params) => {
+                const resUrl = params.response.url || '';
+                const ct = params.response.headers['content-type'] || params.response.headers['Content-Type'] || '';
+                if ((resUrl.includes('.m3u8') || ct.includes('mpegurl')) && resUrl.includes('inmoves.nl')) {
+                    this.storeStreamUrl(id, resUrl);
+                }
             });
 
             await page.goto(rwsUrl, { waitUntil: 'networkidle2', timeout: 30000 });
