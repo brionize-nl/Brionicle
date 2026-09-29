@@ -389,6 +389,13 @@ html, body {
     50% { opacity: 0.3; }
 }
 
+/* Pin marker */
+
+.pin-marker {
+    background: none !important;
+    border: none !important;
+}
+
 /* Flight marker */
 
 .flight-marker {

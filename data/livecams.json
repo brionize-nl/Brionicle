@@ -116,8 +116,6 @@
         "lon": 4.8932,
         "country": "NL",
         "description": "Live uitzicht over de Dam, het hart van Amsterdam",
-        "streamId": "dam-amsterdam",
-        "skylineId": 1794,
         "website": "https://www.skylinewebcams.com/en/webcam/netherlands/north-holland/amsterdam/amsterdam-dam-square.html"
     },
     {
@@ -216,7 +214,6 @@
         "description": "Live beeld van de Etna, een van de actiefste vulkanen ter wereld",
         "youtubeChannel": "UC2WMV4vCYurHdHPd9pCqYSg",
         "youtubeVideo": "plYtw4DSf5I",
-        "streamId": "etna-vulkaan",
         "website": "https://www.skylinewebcams.com/en/webcam/italia/sicilia/catania/vulcano-etna.html"
     },
     {
@@ -248,7 +245,6 @@
         "lon": 139.7004,
         "country": "JP",
         "description": "Het drukste zebrapad ter wereld, Shibuya, Tokyo",
-        "streamId": "shibuya-crossing",
         "website": "https://www.skylinewebcams.com/en/webcam/japan/kanto/tokyo/shibuya-crossing.html"
     },
     {
@@ -271,7 +267,6 @@
         "description": "Live 4K uitzicht over het Canal Grande en de Rialtobrug",
         "youtubeChannel": "UC2WMV4vCYurHdHPd9pCqYSg",
         "youtubeVideo": "Kmf_wiTFuXY",
-        "streamId": "venice",
         "website": "https://www.skylinewebcams.com/en/webcam/italia/veneto/venezia/rialto-bridge.html"
     },
     {
@@ -313,7 +308,6 @@
         "lon": -54.4367,
         "country": "BR/AR",
         "description": "Spectaculaire watervallen op de grens van Brazilie en Argentinie",
-        "streamId": "iguazu-falls",
         "website": "https://www.skylinewebcams.com/en/webcam/brasil/parana/foz-do-iguacu/cataratas-do-iguacu.html"
     }
 ]

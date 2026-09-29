@@ -74,21 +74,23 @@ const Pins = {
                 icon: L.divIcon({
                     className: 'pin-marker',
                     html: `<div style="
-                        width:14px;height:14px;
+                        width:24px;height:24px;
                         background:${typeInfo.color};
                         border:2px solid #fff;
                         border-radius:50%;
-                        box-shadow:0 0 6px ${typeInfo.color}80;
+                        box-shadow:0 0 8px ${typeInfo.color}80;
                         cursor:pointer;
-                    "></div>`,
-                    iconSize: [14, 14],
-                    iconAnchor: [7, 7]
+                        display:flex;align-items:center;justify-content:center;
+                        font-size:12px;line-height:1;
+                    ">${typeInfo.icon}</div>`,
+                    iconSize: [24, 24],
+                    iconAnchor: [12, 12]
                 })
             });
 
             marker.bindTooltip(item.name, {
                 direction: 'top',
-                offset: [0, -8],
+                offset: [0, -14],
                 className: 'camera-tooltip'
             });
 
@@ -112,36 +114,40 @@ const Pins = {
     },
 
     renderHTML(item) {
-        const typeInfo = this.TYPES[item.type] || {};
+        const typeInfo = this.TYPES[item.type] || { color: '#aaa', icon: '&#9679;', label: item.type };
         const parts = [];
 
+        parts.push(`<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+            <div style="width:42px;height:42px;background:${typeInfo.color};border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;box-shadow:0 0 12px ${typeInfo.color}40;">${typeInfo.icon}</div>
+            <div>
+                <div style="font-size:16px;font-weight:700;">${item.name}</div>
+                <div style="font-size:12px;color:var(--text-dim);">${typeInfo.label || item.type}${item.country ? ' · ' + item.country : ''}</div>
+            </div>
+        </div>`);
+
         if (item.description) {
-            parts.push(`<p style="font-size:13px;color:var(--text);margin-bottom:8px;">${item.description}</p>`);
+            parts.push(`<p style="font-size:13px;color:var(--text);margin-bottom:8px;line-height:1.5;">${item.description}</p>`);
         }
 
         if (item.dates) {
-            parts.push(`<p style="font-size:12px;color:var(--text-dim);">Datum: ${item.dates}</p>`);
+            parts.push(`<p style="font-size:12px;color:var(--text-dim);margin-bottom:4px;">&#128197; ${item.dates}</p>`);
         }
 
         if (item.genre) {
-            parts.push(`<p style="font-size:12px;color:var(--text-dim);">Genre: ${item.genre}</p>`);
-        }
-
-        if (item.country) {
-            parts.push(`<p style="font-size:12px;color:var(--text-dim);">Land: ${item.country}</p>`);
+            parts.push(`<p style="font-size:12px;color:var(--text-dim);margin-bottom:4px;">&#9835; ${item.genre}</p>`);
         }
 
         if (item.website) {
             const isLiveCam = ['wildlife', 'zoo', 'vulkaan', 'stadscam'].includes(item.type);
-            const label = isLiveCam ? 'Bekijk live' : 'Website';
-            parts.push(`<a href="${item.website}" target="_blank" rel="noopener" style="display:inline-block;margin-top:6px;font-size:12px;color:var(--accent);text-decoration:none;">${label} &rarr;</a>`);
+            const label = isLiveCam ? '&#9654; Bekijk live' : 'Website';
+            parts.push(`<a href="${item.website}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;margin-top:8px;padding:8px 16px;background:var(--accent);color:#000;border-radius:6px;font-size:13px;font-weight:600;text-decoration:none;">${label} &rarr;</a>`);
         }
 
         if (item.webcamUrl) {
             parts.push(`<a href="${item.webcamUrl}" target="_blank" rel="noopener" style="display:inline-block;margin-top:4px;font-size:12px;color:var(--accent);text-decoration:none;">Webcam &rarr;</a>`);
         }
 
-        return `<h3>${typeInfo.label || item.type}</h3>${parts.join('')}`;
+        return parts.join('');
     },
 
     renderYouTube(item) {
