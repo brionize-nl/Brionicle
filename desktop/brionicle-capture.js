@@ -141,22 +141,17 @@ class BrionicleCapture {
             // Stap 1: Klik het "Live stream" schuifje aan
             const toggled = await this.clickLiveToggle(page);
             if (toggled) {
-                this.log('  Live stream toggle aangeklikt');
+                this.log(`  Live stream toggle aangeklikt (${toggled})`);
                 await this.sleep(3000);
             } else {
                 this.log('  Geen live stream toggle gevonden');
             }
 
-            // Stap 2: Zoek de video of iframe met stream
-            let capturePage = page;
-            const video = await page.$('video');
-            if (video) {
-                this.log('  Video element gevonden');
-            } else {
-                const streamIframe = await this.findStreamIframe(page);
-                if (streamIframe) {
-                    this.log('  Stream iframe gevonden');
-                }
+            // Stap 2: Maak video/iframe fullscreen (vult heel het venster)
+            const madeFullscreen = await this.makeVideoFullscreen(page);
+            if (madeFullscreen) {
+                this.log(`  Fullscreen: ${madeFullscreen}`);
+                await this.sleep(1000);
             }
 
             if (this.config.debug) {
@@ -266,6 +261,60 @@ class BrionicleCapture {
                 return null;
             });
             return clicked;
+        } catch {
+            return null;
+        }
+    }
+
+    async makeVideoFullscreen(page) {
+        try {
+            return await page.evaluate(() => {
+                const fullscreenStyle = 'position:fixed!important;top:0!important;left:0!important;width:100vw!important;height:100vh!important;z-index:999999!important;object-fit:contain!important;background:#000!important;';
+
+                // Methode 1: Video element direct fullscreen
+                const video = document.querySelector('video');
+                if (video && video.offsetWidth > 50) {
+                    video.style.cssText = fullscreenStyle;
+                    video.muted = true;
+                    video.play().catch(() => {});
+                    return 'video';
+                }
+
+                // Methode 2: Inmoves.nl iframe fullscreen
+                const iframes = [...document.querySelectorAll('iframe')];
+                for (const iframe of iframes) {
+                    const src = iframe.src || '';
+                    if (src.includes('inmoves') || src.includes('stream') || src.includes('video')) {
+                        iframe.style.cssText = fullscreenStyle;
+                        return 'iframe: ' + src.slice(0, 60);
+                    }
+                }
+
+                // Methode 3: Grootste iframe/video container fullscreen
+                const bigIframe = iframes.reduce((best, f) => {
+                    const r = f.getBoundingClientRect();
+                    const area = r.width * r.height;
+                    return area > (best ? best.area : 0) ? { el: f, area } : best;
+                }, null);
+                if (bigIframe && bigIframe.area > 10000) {
+                    bigIframe.el.style.cssText = fullscreenStyle;
+                    return 'biggest-iframe';
+                }
+
+                // Methode 4: Grootste img (snapshot) fullscreen als fallback
+                const imgs = [...document.querySelectorAll('img')];
+                const bigImg = imgs.reduce((best, img) => {
+                    const r = img.getBoundingClientRect();
+                    const area = r.width * r.height;
+                    return area > (best ? best.area : 0) ? { el: img, area } : best;
+                }, null);
+                if (bigImg && bigImg.area > 30000) {
+                    bigImg.el.style.cssText = fullscreenStyle;
+                    return 'img';
+                }
+
+                return null;
+            });
         } catch {
             return null;
         }
