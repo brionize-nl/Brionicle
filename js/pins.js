@@ -219,6 +219,23 @@ const Pins = {
             if (!video) return;
             const src = `/api/camera-stream?id=${item.streamId}`;
 
+            const showIframeFallback = () => {
+                if (!item.website) return;
+                const wrapper = document.getElementById(wrapperId);
+                if (!wrapper) return;
+                wrapper.innerHTML = `
+                    <iframe src="${item.website}" width="100%" height="300" frameborder="0"
+                        allow="autoplay; encrypted-media" allowfullscreen
+                        style="background:#000;display:block;"></iframe>
+                    <button onclick="Pins.toggleFullscreen('${wrapperId}',null)" style="
+                        position:absolute;bottom:8px;right:8px;
+                        background:rgba(0,0,0,0.6);border:none;color:#fff;
+                        width:32px;height:32px;border-radius:4px;cursor:pointer;
+                        font-size:16px;display:flex;align-items:center;justify-content:center;
+                        z-index:10;" title="Volledig scherm">&#x26F6;</button>`;
+                if (status) status.textContent = 'Live (via website)';
+            };
+
             if (typeof Hls !== 'undefined' && Hls.isSupported()) {
                 const hls = new Hls({ maxBufferLength: 10, liveSyncDurationCount: 3 });
                 hls.loadSource(src);
@@ -228,17 +245,20 @@ const Pins = {
                     if (status) status.textContent = 'Live';
                 });
                 hls.on(Hls.Events.ERROR, (_, data) => {
-                    if (data.fatal && status) {
-                        status.innerHTML = 'Stream niet beschikbaar — <a href="' + (item.website || '') + '" target="_blank" rel="noopener" style="color:var(--accent);">bekijk op website</a>';
+                    if (data.fatal) {
+                        hls.destroy();
+                        Pins._activeHls = null;
+                        showIframeFallback();
                     }
                 });
                 Pins._activeHls = hls;
             } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
                 video.src = src;
+                video.addEventListener('error', () => showIframeFallback(), { once: true });
                 video.play().catch(() => {});
                 if (status) status.textContent = 'Live';
-            } else if (status) {
-                status.innerHTML = 'HLS niet ondersteund — <a href="' + (item.website || '') + '" target="_blank" rel="noopener" style="color:var(--accent);">bekijk op website</a>';
+            } else {
+                showIframeFallback();
             }
         }, 100);
 
@@ -249,16 +269,16 @@ const Pins = {
         const wrapper = document.getElementById(wrapperId);
         if (!wrapper) return;
 
+        const media = videoId ? document.getElementById(videoId) : wrapper.querySelector('iframe, video');
+
         if (wrapper.classList.contains('pin-fullscreen')) {
             wrapper.classList.remove('pin-fullscreen');
             wrapper.style.cssText = 'position:relative;border-radius:6px;overflow:hidden;margin-bottom:8px;background:#000;';
-            const video = document.getElementById(videoId);
-            if (video) video.style.height = '200px';
+            if (media) media.style.height = media.tagName === 'IFRAME' ? '300px' : '200px';
         } else {
             wrapper.classList.add('pin-fullscreen');
             wrapper.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:10000;background:#000;border-radius:0;overflow:hidden;';
-            const video = document.getElementById(videoId);
-            if (video) video.style.height = '100vh';
+            if (media) media.style.height = '100vh';
         }
     },
 
