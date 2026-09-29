@@ -365,9 +365,20 @@ const App = {
     },
 
     async registerServiceWorker() {
-        if ('serviceWorker' in navigator) {
-            try { await navigator.serviceWorker.register('sw.js'); }
-            catch (e) { console.warn('SW registratie mislukt:', e); }
+        if (!('serviceWorker' in navigator)) return;
+        try {
+            const reg = await navigator.serviceWorker.register('sw.js');
+            reg.addEventListener('updatefound', () => {
+                const newSW = reg.installing;
+                if (!newSW) return;
+                newSW.addEventListener('statechange', () => {
+                    if (newSW.state === 'activated' && navigator.serviceWorker.controller) {
+                        window.location.reload();
+                    }
+                });
+            });
+        } catch (e) {
+            console.warn('SW registratie mislukt:', e);
         }
     }
 };
