@@ -67,6 +67,13 @@ const Flights = {
         return dirs[Math.round(deg / 45) % 8];
     },
 
+    markerSvg(rotation, color, size) {
+        const s = size || 24;
+        return `<svg width="${s}" height="${s}" viewBox="0 0 24 24" style="transform:rotate(${rotation}deg);filter:drop-shadow(0 1px 4px rgba(0,0,0,0.7));">
+            <path d="M12 2 L14 9 L21 11 L14 13 L14 19 L17 21 L12 20 L7 21 L10 19 L10 13 L3 11 L10 9 Z" fill="${color}" stroke="rgba(0,0,0,0.3)" stroke-width="0.5"/>
+        </svg>`;
+    },
+
     async update() {
         try {
             const center = this.map.getCenter();
@@ -98,18 +105,20 @@ const Flights = {
                 const color = this.altitudeColor(alt);
                 const isTracked = hex === this.trackedHex;
 
-                const iconHtml = `<div style="transform:rotate(${rotation}deg);font-size:18px;color:${color};filter:drop-shadow(0 1px 3px rgba(0,0,0,0.8));line-height:1;">&#9992;</div>`;
+                const iconHtml = this.markerSvg(rotation, color, isTracked ? 30 : 22);
 
                 const altM = alt !== null ? Math.round(alt * 0.3048) : null;
                 const speedKmh = speed ? Math.round(speed * 1.852) : null;
                 const vRate = ac.baro_rate;
-                const vLabel = vRate > 100 ? '&#8599;' : vRate < -100 ? '&#8600;' : '&#8594;';
+                const vLabel = vRate > 100 ? '&#8599;' : vRate < -100 ? '&#8600;' : '';
 
                 let tip = `<b>${callsign || hex.toUpperCase()}</b>`;
                 if (ac.t) tip += ` <span style="opacity:0.7">${ac.t}</span>`;
-                if (altM !== null) tip += `<br>${altM}m hoogte`;
-                if (speedKmh) tip += ` | ${speedKmh} km/u ${vLabel}`;
-                if (ac.r) tip += `<br>${ac.r}`;
+                if (altM !== null) tip += `<br>${altM.toLocaleString('nl-NL')}m`;
+                if (speedKmh) tip += ` · ${speedKmh} km/u ${vLabel}`;
+
+                const iconSize = isTracked ? 30 : 22;
+                const half = iconSize / 2;
 
                 const existing = this.markers.get(hex);
                 if (existing) {
@@ -117,8 +126,8 @@ const Flights = {
                     existing.setIcon(L.divIcon({
                         className: 'flight-marker' + (isTracked ? ' flight-marker-tracked' : ''),
                         html: iconHtml,
-                        iconSize: [22, 22],
-                        iconAnchor: [11, 11]
+                        iconSize: [iconSize, iconSize],
+                        iconAnchor: [half, half]
                     }));
                     existing.setTooltipContent(tip);
                     existing._flightData = ac;
@@ -127,8 +136,8 @@ const Flights = {
                         icon: L.divIcon({
                             className: 'flight-marker' + (isTracked ? ' flight-marker-tracked' : ''),
                             html: iconHtml,
-                            iconSize: [22, 22],
-                            iconAnchor: [11, 11]
+                            iconSize: [iconSize, iconSize],
+                            iconAnchor: [half, half]
                         }),
                         zIndexOffset: isTracked ? 1000 : 0
                     });
@@ -176,6 +185,23 @@ const Flights = {
         }
     },
 
+    altBar(alt, maxFt) {
+        if (typeof alt !== 'number') return '';
+        const pct = Math.min((alt / (maxFt || 45000)) * 100, 100);
+        const color = this.altitudeColor(alt);
+        return `<div style="height:6px;background:var(--bg);border-radius:3px;overflow:hidden;margin-top:4px;">
+            <div style="height:100%;width:${pct}%;background:${color};border-radius:3px;transition:width 0.3s;"></div>
+        </div>`;
+    },
+
+    speedBar(speedKmh) {
+        if (!speedKmh) return '';
+        const pct = Math.min((speedKmh / 1000) * 100, 100);
+        return `<div style="height:6px;background:var(--bg);border-radius:3px;overflow:hidden;margin-top:4px;">
+            <div style="height:100%;width:${pct}%;background:var(--accent);border-radius:3px;transition:width 0.3s;"></div>
+        </div>`;
+    },
+
     renderHTML(ac) {
         const callsign = (ac.flight || '').trim();
         const hex = (ac.hex || '').toUpperCase();
@@ -189,58 +215,83 @@ const Flights = {
         const headingDir = this.headingLabel(heading);
         const vRate = ac.baro_rate;
         const squawk = ac.squawk || '';
-        const category = ac.category || '';
         const isTracked = ac.hex === this.trackedHex;
+        const color = this.altitudeColor(alt);
 
         let vRateText = '';
+        let vRateColor = 'var(--text)';
         if (typeof vRate === 'number') {
             const vRateMs = Math.round(vRate * 0.00508 * 10) / 10;
-            if (vRate > 200) vRateText = `&#8599; Stijgend (${vRateMs} m/s)`;
-            else if (vRate < -200) vRateText = `&#8600; Dalend (${Math.abs(vRateMs)} m/s)`;
+            if (vRate > 200) { vRateText = `&#8599; +${vRateMs} m/s`; vRateColor = 'var(--success)'; }
+            else if (vRate < -200) { vRateText = `&#8600; ${vRateMs} m/s`; vRateColor = 'var(--warning)'; }
             else vRateText = '&#8594; Vlak';
         }
 
-        const color = this.altitudeColor(alt);
-        const trackBtnStyle = isTracked
-            ? 'background:#f44;border:1px solid #f44;color:#fff;'
-            : 'background:var(--accent);border:1px solid var(--accent);color:#fff;';
-        const trackLabel = isTracked ? '&#10006; Stop volgen' : '&#9737; Volgen';
-
-        let html = '<div style="display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:13px;">';
-
-        if (callsign) html += `<span style="color:var(--text-dim);">Vlucht</span><span><b>${callsign}</b></span>`;
-        if (reg) html += `<span style="color:var(--text-dim);">Registratie</span><span>${reg}</span>`;
-        if (type) html += `<span style="color:var(--text-dim);">Type</span><span>${type}</span>`;
-        html += `<span style="color:var(--text-dim);">ICAO</span><span style="font-family:monospace;font-size:12px;">${hex}</span>`;
+        let html = `<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+            <div style="flex-shrink:0;">${this.markerSvg(0, color, 48)}</div>
+            <div>
+                <div style="font-size:18px;font-weight:700;">${callsign || hex}</div>
+                <div style="font-size:12px;color:var(--text-dim);">${[type, reg].filter(Boolean).join(' · ')}</div>
+            </div>
+        </div>`;
 
         if (altM !== null) {
-            html += `<span style="color:var(--text-dim);">Hoogte</span>
-                <span><b style="color:${color}">${altM.toLocaleString('nl-NL')} m</b> <span style="opacity:0.6">(${altFt.toLocaleString('nl-NL')} ft)</span></span>`;
+            html += `<div style="margin-bottom:10px;">
+                <div style="display:flex;justify-content:space-between;align-items:baseline;">
+                    <span style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.5px;">Hoogte</span>
+                    <span style="font-size:11px;color:var(--text-dim);">${altFt.toLocaleString('nl-NL')} ft</span>
+                </div>
+                <div style="font-size:22px;font-weight:700;color:${color};">${altM.toLocaleString('nl-NL')} m</div>
+                ${this.altBar(alt, 45000)}
+            </div>`;
         }
+
         if (speed !== null) {
-            html += `<span style="color:var(--text-dim);">Snelheid</span><span>${speed} km/u</span>`;
+            html += `<div style="margin-bottom:10px;">
+                <span style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.5px;">Snelheid</span>
+                <div style="font-size:22px;font-weight:700;">${speed} <span style="font-size:14px;font-weight:400;">km/u</span></div>
+                ${this.speedBar(speed)}
+            </div>`;
         }
+
+        html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">';
         if (heading !== undefined) {
-            html += `<span style="color:var(--text-dim);">Koers</span><span>${Math.round(heading)}&deg; ${headingDir}</span>`;
+            html += `<div>
+                <span style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.5px;">Koers</span>
+                <div style="font-size:16px;font-weight:600;">${Math.round(heading)}° ${headingDir}</div>
+            </div>`;
         }
         if (vRateText) {
-            html += `<span style="color:var(--text-dim);">Verticaal</span><span>${vRateText}</span>`;
+            html += `<div>
+                <span style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.5px;">Verticaal</span>
+                <div style="font-size:16px;font-weight:600;color:${vRateColor};">${vRateText}</div>
+            </div>`;
         }
-        if (squawk) {
-            const special = { '7500': 'Kaping', '7600': 'Comm. storing', '7700': 'Noodgeval' };
-            const sqLabel = special[squawk] ? ` <b style="color:#f44;">${special[squawk]}!</b>` : '';
-            html += `<span style="color:var(--text-dim);">Squawk</span><span style="font-family:monospace;">${squawk}${sqLabel}</span>`;
-        }
-
         html += '</div>';
 
-        html += `<div style="display:flex;gap:8px;margin-top:10px;">
+        if (squawk) {
+            const special = { '7500': 'Kaping', '7600': 'Comm. storing', '7700': 'Noodgeval' };
+            const isEmergency = special[squawk];
+            html += `<div style="margin-bottom:10px;">
+                <span style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.5px;">Squawk</span>
+                <div style="font-size:16px;font-weight:600;font-family:monospace;">${squawk}${isEmergency ? ` <span style="color:var(--error);font-family:sans-serif;font-size:13px;font-weight:700;background:rgba(239,83,80,0.15);padding:2px 8px;border-radius:4px;">${isEmergency}</span>` : ''}</div>
+            </div>`;
+        }
+
+        html += `<div style="font-size:11px;color:var(--text-dim);margin-bottom:10px;font-family:monospace;">ICAO ${hex}</div>`;
+
+        const trackBtnStyle = isTracked
+            ? 'background:var(--error);border:1px solid var(--error);color:#fff;'
+            : 'background:var(--accent);border:1px solid var(--accent);color:#000;';
+        const trackLabel = isTracked ? '&#10006; Stop volgen' : '&#9737; Volgen';
+
+        html += `<div style="display:flex;gap:8px;">
             <button onclick="Flights.toggleTrack('${ac.hex}')"
-                style="${trackBtnStyle}padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer;">
+                style="${trackBtnStyle}padding:8px 16px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;">
                 ${trackLabel}</button>
             <a href="https://globe.adsb.fi/?icao=${ac.hex}" target="_blank" rel="noopener"
-                style="display:flex;align-items:center;font-size:11px;color:var(--accent);text-decoration:none;">
-                Meer info &rarr;</a>
+                style="display:flex;align-items:center;font-size:12px;color:var(--accent);text-decoration:none;">
+                ADS-B &rarr;</a>
         </div>`;
 
         return html;
