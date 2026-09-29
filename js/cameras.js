@@ -225,8 +225,7 @@ const Cameras = {
             if (data.fatal) {
                 hls.destroy();
                 this._hls = null;
-                this.requestDesktop(cam, 'start_live');
-                this.startLive(cam, containerId);
+                this.trySnapshot(cam, containerId);
             }
         });
     },
