@@ -1,7 +1,7 @@
 const Cameras = {
     markers: [],
     layerGroup: null,
-    hlsPlayer: null,
+    liveInterval: null,
 
     init(map) {
         this.layerGroup = L.layerGroup().addTo(map);
@@ -29,7 +29,6 @@ const Cameras = {
                     lat: parseFloat(cam.latitude || cam.lat),
                     lon: parseFloat(cam.longitude || cam.lon),
                     rwsPageUrl: rwsPageUrl,
-                    streamUrl: cam.stream_url || cam.streamUrl || null,
                     source: 'Rijkswaterstaat'
                 };
             }).filter(c => !isNaN(c.lat) && !isNaN(c.lon));
@@ -93,116 +92,36 @@ const Cameras = {
         this.markers = [];
     },
 
-    destroyHls() {
-        if (this.hlsPlayer) {
-            this.hlsPlayer.destroy();
-            this.hlsPlayer = null;
+    stopLive() {
+        if (this.liveInterval) {
+            clearInterval(this.liveInterval);
+            this.liveInterval = null;
         }
     },
 
     renderCamera(cam) {
         const containerId = `cam-img-${cam.id}`;
-        this.destroyHls();
+        this.stopLive();
 
-        setTimeout(() => {
-            this.tryStream(cam, containerId);
-        }, 50);
+        setTimeout(() => this.startLive(cam, containerId), 50);
 
         let html = '';
         if (cam.road) {
             html += `<p style="font-size:13px;color:var(--text);margin-bottom:6px;">Snelweg <b>${cam.road}</b>${cam.near ? ' bij ' + cam.near : ''}</p>`;
         }
-        html += `<div id="${containerId}" style="min-height:40px;"><div class="loading">Live stream laden...</div></div>`;
+        html += `<div id="${containerId}" style="min-height:40px;"><div class="loading">Camera laden...</div></div>`;
         html += `<p style="font-size:11px;color:var(--text-dim);margin-top:4px;">Bron: ${cam.source || 'Rijkswaterstaat'}</p>`;
         return html;
     },
 
-    async tryStream(cam, containerId) {
+    startLive(cam, containerId) {
         const container = document.getElementById(containerId);
         if (!container) return;
 
-        try {
-            const hlsUrl = `/api/camera-stream?id=${cam.id}`;
-            const res = await fetch(hlsUrl);
-            const ct = res.headers.get('content-type') || '';
-
-            if (res.ok && ct.includes('mpegurl')) {
-                this.showHlsPlayer(cam, containerId, hlsUrl);
-                return;
-            }
-        } catch {}
-
-        this.tryIframe(cam, containerId);
-    },
-
-    showHlsPlayer(cam, containerId, hlsUrl) {
-        const container = document.getElementById(containerId);
-        if (!container) return;
-
-        const videoId = `cam-video-${cam.id}`;
-        container.innerHTML = `
-            <video id="${videoId}" style="width:100%;border-radius:6px;background:#000;" autoplay muted playsinline></video>
-            ${this.renderButtons(cam, 'hls')}`;
-
-        const video = document.getElementById(videoId);
-        if (!video) return;
-
-        if (video.canPlayType('application/vnd.apple.mpegurl')) {
-            video.src = hlsUrl;
-            video.play().catch(() => {});
-        } else if (window.Hls && Hls.isSupported()) {
-            this.destroyHls();
-            const hls = new Hls({ liveDurationInfinity: true, lowLatencyMode: true });
-            hls.loadSource(hlsUrl);
-            hls.attachMedia(video);
-            hls.on(Hls.Events.ERROR, () => {
-                hls.destroy();
-                this.tryIframe(cam, containerId);
-            });
-            this.hlsPlayer = hls;
-        } else {
-            this.tryIframe(cam, containerId);
-        }
-    },
-
-    tryIframe(cam, containerId) {
-        const container = document.getElementById(containerId);
-        if (!container) return;
-
-        if (!cam.streamUrl) {
-            this.trySnapshot(cam, containerId);
-            return;
-        }
-
-        container.innerHTML = `
-            <iframe id="cam-iframe-${cam.id}" src="${cam.streamUrl}"
-                    style="width:100%;aspect-ratio:16/9;border:none;border-radius:6px;background:#000;"
-                    allowfullscreen></iframe>
-            ${this.renderButtons(cam, 'iframe')}`;
-
-        const iframe = document.getElementById(`cam-iframe-${cam.id}`);
-        if (iframe) {
-            iframe.onerror = () => this.trySnapshot(cam, containerId);
-            setTimeout(() => {
-                try {
-                    if (iframe.contentDocument === null && iframe.contentWindow === null) {
-                        this.trySnapshot(cam, containerId);
-                    }
-                } catch {}
-            }, 5000);
-        }
-    },
-
-    trySnapshot(cam, containerId) {
-        const container = document.getElementById(containerId);
-        if (!container) return;
-
+        const imgUrl = `/api/camera-image?id=${cam.id}&t=${Date.now()}`;
         const img = new Image();
         img.onload = () => {
-            container.innerHTML = `
-                <img src="/api/camera-image?id=${cam.id}" alt="${cam.name}"
-                     style="width:100%;border-radius:6px;background:#000;">
-                ${this.renderButtons(cam, 'snapshot')}`;
+            this.showLiveView(cam, containerId);
         };
         img.onerror = () => {
             container.innerHTML = cam.rwsPageUrl
@@ -215,7 +134,46 @@ const Cameras = {
                    </a>`
                 : '<p style="color:var(--text-dim);font-size:12px;">Camera niet beschikbaar</p>';
         };
-        img.src = `/api/camera-image?id=${cam.id}`;
+        img.src = imgUrl;
+    },
+
+    showLiveView(cam, containerId) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        this.stopLive();
+
+        container.innerHTML = `
+            <div style="position:relative;">
+                <img id="cam-live-${cam.id}" src="/api/camera-image?id=${cam.id}&t=${Date.now()}" alt="${cam.name}"
+                     style="width:100%;border-radius:6px;background:#000;">
+                <span id="cam-live-dot-${cam.id}" style="position:absolute;top:8px;right:8px;
+                    background:rgba(0,0,0,0.6);color:#f44;padding:2px 8px;border-radius:10px;
+                    font-size:11px;font-weight:600;display:flex;align-items:center;gap:4px;">
+                    <span style="width:6px;height:6px;background:#f44;border-radius:50;display:inline-block;animation:blink 1s infinite;"></span>
+                    LIVE
+                </span>
+            </div>
+            ${this.renderButtons(cam, 'live')}`;
+
+        this.liveInterval = setInterval(() => {
+            const liveImg = document.getElementById(`cam-live-${cam.id}`);
+            if (!liveImg) { this.stopLive(); return; }
+            const next = new Image();
+            next.onload = () => { liveImg.src = next.src; };
+            next.src = `/api/camera-image?id=${cam.id}&t=${Date.now()}`;
+        }, 3000);
+    },
+
+    showSnapshot(cam, containerId) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        this.stopLive();
+
+        container.innerHTML = `
+            <img src="/api/camera-image?id=${cam.id}&t=${Date.now()}" alt="${cam.name}"
+                 style="width:100%;border-radius:6px;background:#000;"
+                 onerror="this.style.display='none'">
+            ${this.renderButtons(cam, 'snapshot')}`;
     },
 
     renderButtons(cam, active) {
@@ -229,7 +187,7 @@ const Cameras = {
         };
 
         return `<div style="display:flex;gap:6px;margin-top:6px;align-items:center;flex-wrap:wrap;">
-            ${btn('Live', 'iframe', '&#9654;')}
+            ${btn('Live', 'live', '&#9679;')}
             ${btn('Snapshot', 'snapshot', '&#128247;')}
             ${cam.rwsPageUrl ? `<a href="${cam.rwsPageUrl}" target="_blank" rel="noopener"
                 style="font-size:11px;color:var(--accent);text-decoration:none;margin-left:auto;">
@@ -241,12 +199,11 @@ const Cameras = {
         const cam = App.cameras.find(c => c.id === camId);
         if (!cam) return;
         const containerId = `cam-img-${camId}`;
-        this.destroyHls();
 
-        if (mode === 'iframe') {
-            this.tryIframe(cam, containerId);
-        } else if (mode === 'snapshot') {
-            this.trySnapshot(cam, containerId);
+        if (mode === 'live') {
+            this.showLiveView(cam, containerId);
+        } else {
+            this.showSnapshot(cam, containerId);
         }
     },
 
