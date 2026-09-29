@@ -33,14 +33,15 @@
         </div>
     </div>
 
-    <div id="layers-toggle" class="layers-toggle">
-        <button id="layers-btn" aria-label="Lagen">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
-                <polyline points="2 17 12 22 22 17"></polyline>
-                <polyline points="2 12 12 17 22 12"></polyline>
-            </svg>
-        </button>
+    <div class="top-controls">
+        <div id="layers-toggle" class="layers-toggle">
+            <button id="layers-btn" aria-label="Lagen">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                    <polyline points="2 17 12 22 22 17"></polyline>
+                    <polyline points="2 12 12 17 22 12"></polyline>
+                </svg>
+            </button>
         <div id="layers-menu" class="layers-menu hidden">
             <div class="layers-group">
                 <label><input type="checkbox" id="layer-cameras" checked> Camera's</label>
@@ -60,6 +61,12 @@
                 <label><input type="checkbox" id="layer-roadtrip"> Roadtrip modus</label>
             </div>
         </div>
+        <button id="locate-btn" class="locate-btn" aria-label="Mijn locatie">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M12 2v4M12 18v4M2 12h4M18 12h4"></path>
+            </svg>
+        </button>
     </div>
 
     <div id="roadtrip-panel" class="roadtrip-panel hidden">

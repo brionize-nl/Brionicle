@@ -24,18 +24,20 @@ const Weather = {
     },
 
     async fetch(lat, lon) {
-        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&timezone=auto`;
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m,cloud_cover,is_day&timezone=auto`;
         const res = await fetch(url);
         if (!res.ok) throw new Error('Weer ophalen mislukt');
         const data = await res.json();
-        const cw = data.current_weather;
+        const c = data.current;
         return {
-            temperature: Math.round(cw.temperature),
-            windspeed: Math.round(cw.windspeed),
-            winddirection: cw.winddirection,
-            condition: this.WMO_CODES[cw.weathercode] || 'Onbekend',
-            weathercode: cw.weathercode,
-            is_day: cw.is_day
+            temperature: Math.round(c.temperature_2m),
+            windspeed: Math.round(c.wind_speed_10m),
+            winddirection: c.wind_direction_10m,
+            humidity: c.relative_humidity_2m,
+            cloudcover: c.cloud_cover,
+            condition: this.WMO_CODES[c.weather_code] || 'Onbekend',
+            weathercode: c.weather_code,
+            is_day: c.is_day
         };
     },
 
@@ -51,6 +53,14 @@ const Weather = {
                 <div class="weather-item">
                     <span class="value">${weather.windspeed} km/u</span>
                     <span class="label">Wind ${windDir}</span>
+                </div>
+                <div class="weather-item">
+                    <span class="value">${weather.humidity}%</span>
+                    <span class="label">Luchtvochtigheid</span>
+                </div>
+                <div class="weather-item">
+                    <span class="value">${weather.cloudcover}%</span>
+                    <span class="label">Bewolking</span>
                 </div>
             </div>
         `;

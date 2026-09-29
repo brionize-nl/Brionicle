@@ -9,6 +9,7 @@ const App = {
         this.initPanel();
         this.initLayers();
         this.initRoadtrip();
+        this.initLocate();
 
         Cameras.init(this.map);
         Earthquakes.init(this.map);
@@ -54,6 +55,19 @@ const App = {
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') this.closePanel();
         });
+
+        const panel = document.getElementById('panel');
+        let touchStartY = 0;
+        let touchStartX = 0;
+        panel.addEventListener('touchstart', (e) => {
+            touchStartY = e.touches[0].clientY;
+            touchStartX = e.touches[0].clientX;
+        }, { passive: true });
+        panel.addEventListener('touchend', (e) => {
+            const dy = e.changedTouches[0].clientY - touchStartY;
+            const dx = Math.abs(e.changedTouches[0].clientX - touchStartX);
+            if (dy > 80 && dx < 60) this.closePanel();
+        }, { passive: true });
     },
 
     initLayers() {
@@ -82,6 +96,34 @@ const App = {
         Object.entries(layerHandlers).forEach(([id, handler]) => {
             const el = document.getElementById(id);
             if (el) el.addEventListener('change', (e) => handler(e.target.checked));
+        });
+    },
+
+    initLocate() {
+        const btn = document.getElementById('locate-btn');
+        if (!btn) return;
+        this.locationMarker = null;
+
+        btn.addEventListener('click', () => {
+            if (!navigator.geolocation) return;
+            btn.classList.add('active');
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    const { latitude: lat, longitude: lon } = pos.coords;
+                    this.map.flyTo([lat, lon], 13);
+                    if (this.locationMarker) this.map.removeLayer(this.locationMarker);
+                    this.locationMarker = L.circleMarker([lat, lon], {
+                        radius: 8, fillColor: '#4fc3f7', fillOpacity: 0.9,
+                        color: '#fff', weight: 3
+                    }).addTo(this.map);
+                    this.locationMarker.bindTooltip('Jij bent hier', {
+                        direction: 'top', offset: [0, -10], className: 'camera-tooltip'
+                    });
+                    setTimeout(() => btn.classList.remove('active'), 2000);
+                },
+                () => { btn.classList.remove('active'); },
+                { enableHighAccuracy: true, timeout: 10000 }
+            );
         });
     },
 
@@ -186,6 +228,7 @@ const App = {
     },
 
     async showLocationInfo(lat, lon) {
+        if (!this.isChecked('layer-weather')) return;
         this.openPanel();
         this.setPanelHeader(`${lat.toFixed(4)}, ${lon.toFixed(4)}`, 'Locatie');
 
@@ -221,7 +264,7 @@ const App = {
     },
 
     loadWeather(lat, lon, el) {
-        if (!el || !this.isChecked('layer-weather')) return;
+        if (!el) return;
         el.innerHTML = '<div class="loading">Weer laden...</div>';
         Weather.fetch(lat, lon)
             .then(w => { el.innerHTML = Weather.renderHTML(w); })

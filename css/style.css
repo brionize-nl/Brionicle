@@ -233,16 +233,23 @@ html, body {
     background: rgba(0, 0, 0, 0.8);
 }
 
-/* Layers toggle */
+/* Top controls */
 
-.layers-toggle {
+.top-controls {
     position: fixed;
     top: 16px;
     left: 16px;
     z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
-#layers-btn {
+.layers-toggle {
+    position: relative;
+}
+
+#layers-btn, .locate-btn {
     background: var(--bg-panel);
     border: 1px solid var(--border);
     color: var(--text);
@@ -253,11 +260,16 @@ html, body {
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background 0.15s;
+    transition: background 0.15s, color 0.15s;
 }
 
-#layers-btn:hover {
+#layers-btn:hover, .locate-btn:hover {
     background: var(--bg-section);
+}
+
+.locate-btn.active {
+    color: var(--accent);
+    border-color: var(--accent);
 }
 
 .layers-menu {
@@ -431,6 +443,17 @@ html, body {
         transform: translateY(100%);
     }
 
+    .panel::before {
+        content: '';
+        display: block;
+        width: 40px;
+        height: 4px;
+        background: var(--text-dim);
+        border-radius: 2px;
+        margin: 10px auto 0;
+        opacity: 0.5;
+    }
+
     .panel.open {
         transform: translateY(0);
     }
@@ -444,7 +467,7 @@ html, body {
         padding: 8px 16px;
     }
 
-    .layers-toggle {
+    .top-controls {
         top: 10px;
         left: 10px;
     }
