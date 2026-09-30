@@ -46,5 +46,14 @@
   {"name":"Kasteel van Versailles","lat":48.8049,"lon":2.1204,"type":"paleis","period":"17e eeuw","wiki":"Kasteel_van_Versailles"},
   {"name":"Slot Kronborg","lat":56.0389,"lon":12.6217,"type":"kasteel","period":"15e eeuw","wiki":"Slot_Kronborg"},
   {"name":"Castel del Monte","lat":41.0847,"lon":16.2714,"type":"kasteel","period":"13e eeuw","wiki":"Castel_del_Monte"},
-  {"name":"Carcassonne","lat":43.2065,"lon":2.3634,"type":"fort","period":"12e eeuw","wiki":"Carcassonne_(stad)"}
+  {"name":"Carcassonne","lat":43.2065,"lon":2.3634,"type":"fort","period":"12e eeuw","wiki":"Carcassonne_(stad)"},
+  {"name":"Burcht van Leiden","lat":52.1585,"lon":4.4953,"type":"burcht","period":"11e eeuw","wiki":"Burcht_van_Leiden"},
+  {"name":"Valkhof","lat":51.8492,"lon":5.8675,"type":"ruïne","period":"8e eeuw","wiki":"Valkhof"},
+  {"name":"Fort bij Vijfhuizen","lat":52.3467,"lon":4.6858,"type":"fort","period":"19e eeuw","wiki":"Fort_bij_Vijfhuizen"},
+  {"name":"Fort Pannerden","lat":51.8889,"lon":5.9958,"type":"fort","period":"19e eeuw","wiki":"Fort_Pannerden"},
+  {"name":"Fort Sint Pieter","lat":50.8392,"lon":5.6794,"type":"fort","period":"18e eeuw","wiki":"Fort_Sint_Pieter"},
+  {"name":"Fort bij Spijkerboor","lat":52.4622,"lon":4.9178,"type":"fort","period":"19e eeuw","wiki":"Fort_bij_Spijkerboor"},
+  {"name":"Wierickerschans","lat":52.1133,"lon":4.7728,"type":"fort","period":"17e eeuw","wiki":"Wierickerschans"},
+  {"name":"Slot Moermond","lat":51.7339,"lon":3.8636,"type":"kasteel","period":"13e eeuw","wiki":"Slot_Moermond"},
+  {"name":"Kasteel Doornenburg","lat":51.8892,"lon":5.9953,"type":"kasteel","period":"14e eeuw","wiki":"Kasteel_Doornenburg"}
 ]

@@ -13,8 +13,9 @@ const App = {
         Cameras.init(this.map);
         Flights.init(this.map);
         Castles.init(this.map);
+        Mysteries.init(this.map);
 
-        await Promise.all([this.loadCameras(), Castles.load()]);
+        await Promise.all([this.loadCameras(), Castles.load(), Mysteries.load()]);
 
         this.showActiveLayers();
         this.registerServiceWorker();
@@ -52,9 +53,13 @@ const App = {
             if (this.isChecked('layer-castles') && Castles.data.length) {
                 Castles.show((c) => this.onCastleClick(c));
             }
+            if (this.isChecked('layer-mysteries') && Mysteries.data.length) {
+                Mysteries.show((m) => this.onMysteryClick(m));
+            }
         } else {
             document.body.classList.remove('old-world');
             Castles.hide();
+            Mysteries.hide();
         }
 
         this.tileLayer.addTo(this.map);
@@ -99,7 +104,8 @@ const App = {
         const layerHandlers = {
             'layer-cameras': (on) => on ? Cameras.show(this.cameras, this.map, (c) => this.onCameraClick(c)) : Cameras.hide(),
             'layer-flights': (on) => on ? Flights.show() : Flights.hide(),
-            'layer-castles': (on) => on ? Castles.show((c) => this.onCastleClick(c)) : Castles.hide()
+            'layer-castles': (on) => on ? Castles.show((c) => this.onCastleClick(c)) : Castles.hide(),
+            'layer-mysteries': (on) => on ? Mysteries.show((m) => this.onMysteryClick(m)) : Mysteries.hide()
         };
 
         Object.entries(layerHandlers).forEach(([id, handler]) => {
@@ -143,8 +149,9 @@ const App = {
     showActiveLayers() {
         if (this.isChecked('layer-cameras')) Cameras.show(this.cameras, this.map, (c) => this.onCameraClick(c));
         if (this.isChecked('layer-flights')) Flights.show();
-        if (this.isChecked('layer-castles') && document.body.classList.contains('old-world')) {
-            Castles.show((c) => this.onCastleClick(c));
+        if (document.body.classList.contains('old-world')) {
+            if (this.isChecked('layer-castles')) Castles.show((c) => this.onCastleClick(c));
+            if (this.isChecked('layer-mysteries')) Mysteries.show((m) => this.onMysteryClick(m));
         }
     },
 
@@ -185,6 +192,20 @@ const App = {
         }
     },
 
+    async onMysteryClick(mystery) {
+        this.openPanel();
+        this.setPanelHeader(mystery.name, Mysteries.typeLabel(mystery.type) + (mystery.period ? ' — ' + mystery.period : ''));
+
+        const sections = this.clearSections();
+        sections.camera.innerHTML = '<div class="loading">Wikipedia laden...</div>';
+
+        const wiki = await Mysteries.fetchWiki(mystery.wiki);
+        sections.camera.innerHTML = Mysteries.renderHTML(mystery, wiki);
+
+        this.loadWeather(mystery.lat, mystery.lon, sections.weather);
+        this.loadSunTimes(mystery.lat, mystery.lon, sections.sun);
+    },
+
     async onCastleClick(castle) {
         this.openPanel();
         this.setPanelHeader(castle.name, Castles.typeLabel(castle.type) + (castle.period ? ' — ' + castle.period : ''));
@@ -202,11 +223,33 @@ const App = {
     async showLocationInfo(lat, lon) {
         if (!this.isChecked('layer-weather')) return;
         this.openPanel();
-        this.setPanelHeader(`${lat.toFixed(4)}, ${lon.toFixed(4)}`, 'Locatie');
+        this.setPanelHeader('Locatie laden...', '');
 
         const sections = this.clearSections();
+        this.reverseGeocode(lat, lon);
         this.loadWeather(lat, lon, sections.weather);
         this.loadSunTimes(lat, lon, sections.sun);
+    },
+
+    async reverseGeocode(lat, lon) {
+        try {
+            const res = await fetch(
+                `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=nl&zoom=10`
+            );
+            if (!res.ok) throw new Error();
+            const data = await res.json();
+            const addr = data.address || {};
+            const name = addr.city || addr.town || addr.village || addr.hamlet || addr.municipality || '';
+            const region = addr.state || addr.county || '';
+            const country = addr.country || '';
+            if (name) {
+                this.setPanelHeader(name, [region, country].filter(Boolean).join(', '));
+            } else {
+                this.setPanelHeader(`${lat.toFixed(4)}, ${lon.toFixed(4)}`, data.display_name || 'Locatie');
+            }
+        } catch {
+            this.setPanelHeader(`${lat.toFixed(4)}, ${lon.toFixed(4)}`, 'Locatie');
+        }
     },
 
     setPanelHeader(title, subtitle) {

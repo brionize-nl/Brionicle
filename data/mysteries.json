@@ -1,0 +1,28 @@
+[
+  {"name":"Grootoosten der Nederlanden","lat":52.0771,"lon":4.3058,"type":"loge","period":"1756","description":"Hoofdkwartier van de Nederlandse vrijmetselarij, Fluwelen Burgwal","wiki":"Orde_van_Vrijmetselaren_onder_het_Grootoosten_der_Nederlanden"},
+  {"name":"Logegebouw Vondelstraat","lat":52.3600,"lon":4.8780,"type":"loge","period":"19e eeuw","description":"Historisch vrijmetselaarsgebouw in Amsterdam"},
+  {"name":"Freemasons' Hall","lat":51.5156,"lon":-0.1200,"type":"loge","period":"1933","description":"Grootste vrijmetselaarsgebouw van Engeland, Great Queen Street","wiki":"Freemasons'_Hall,_London"},
+  {"name":"Grand Orient de France","lat":48.8731,"lon":2.3427,"type":"loge","period":"1773","description":"Hoofdkwartier van de oudste Franse vrijmetselaarsorde","wiki":"Grand_Orient_de_France"},
+  {"name":"Rosslyn Chapel","lat":55.8554,"lon":-3.1606,"type":"loge","period":"1446","description":"Mysterieuze kapel vol vrijmetselaarssymboliek","wiki":"Rosslyn_Chapel"},
+  {"name":"Temple Church","lat":51.5118,"lon":-0.1107,"type":"loge","period":"1185","description":"Tempelierskerk met ronde nave, gebouwd naar model van de Heilig Grafkerk","wiki":"Temple_Church"},
+  {"name":"Logegebouw Dordrecht","lat":51.8133,"lon":4.6736,"type":"loge","period":"18e eeuw","description":"Een van de oudste logegebouwen van Nederland"},
+  {"name":"Logegebouw Leiden","lat":52.1583,"lon":4.4900,"type":"loge","period":"18e eeuw","description":"Historisch vrijmetselaarsgebouw in het centrum van Leiden"},
+
+  {"name":"Huize Ivicke","lat":52.1547,"lon":4.3858,"type":"spook","period":"1908","description":"Verlaten landhuis in Wassenaar, bekend als een van de meest beangstigende plekken van Nederland","wiki":"Huize_Ivicke"},
+  {"name":"Het Huis met de Hoofden","lat":52.3764,"lon":4.8849,"type":"spook","period":"1622","description":"Grachtenpand met zes mysterieuze koppen aan de gevel, gelinkt aan duistere legendes","wiki":"Huis_met_de_Hoofden"},
+  {"name":"Ruïne Slot Schaesberg","lat":50.8894,"lon":6.0008,"type":"spook","period":"17e eeuw","description":"Vervallen kasteel met verhalen over spoken en onverklaarbare verschijnselen","wiki":"Kasteel_Schaesberg"},
+  {"name":"Kasteel Waardenburg","lat":51.8250,"lon":5.2583,"type":"spook","period":"13e eeuw","description":"Kasteel met legendes over een Witte Dame die door de gangen dwaalt","wiki":"Kasteel_Waardenburg"},
+  {"name":"Het Dolhuys","lat":52.3850,"lon":4.6400,"type":"spook","period":"1320","description":"Voormalig krankzinnigengesticht in Haarlem met een donker verleden","wiki":"Het_Dolhuys"},
+  {"name":"Witte Wieven Heuvels","lat":52.3500,"lon":5.9833,"type":"spook","description":"Grafheuvels bij Epe waar de Witte Wieven volgens de legende verschijnen"},
+  {"name":"Drakenburg","lat":52.2000,"lon":5.2700,"type":"spook","period":"13e eeuw","description":"Ruïne bij Baarn met verhalen over een verborgen schat en spoken"},
+  {"name":"Kasteel Stapelen","lat":51.5878,"lon":5.4133,"type":"spook","period":"14e eeuw","description":"Kasteel bij Boxtel waar paranormale activiteit is gemeld","wiki":"Kasteel_Stapelen"},
+
+  {"name":"Poveglia","lat":45.3833,"lon":12.3194,"type":"spook","description":"Verlaten eiland bij Venetië, ooit pesteiland en krankzinnigengesticht","wiki":"Poveglia"},
+  {"name":"Houska","lat":50.4836,"lon":14.6264,"type":"spook","period":"13e eeuw","description":"Kasteel in Tsjechië gebouwd boven een zogenaamde poort naar de hel","wiki":"Kasteel_Houska"},
+  {"name":"Leap Castle","lat":52.9881,"lon":-7.7936,"type":"spook","period":"15e eeuw","description":"Een van de meest bespookte kastelen ter wereld, Ierland","wiki":"Leap_Castle"},
+  {"name":"Borley Rectory","lat":52.0756,"lon":0.7558,"type":"spook","period":"1862","description":"Ooit het meest bespookte huis van Engeland","wiki":"Borley_Rectory"},
+  {"name":"Ancient Ram Inn","lat":51.7692,"lon":-2.1639,"type":"spook","period":"1145","description":"Middeleeuws herenhuis in Gloucestershire, beroemd om paranormale activiteit","wiki":"Ancient_Ram_Inn"},
+  {"name":"Catacomben van Parijs","lat":48.8339,"lon":2.3322,"type":"spook","period":"18e eeuw","description":"Ondergronds ossuarium met de resten van zes miljoen mensen","wiki":"Catacomben_van_Parijs"},
+  {"name":"Château de Brissac","lat":47.3533,"lon":-0.4500,"type":"spook","period":"11e eeuw","description":"Hoogste kasteel van Frankrijk, bespookt door de Groene Dame","wiki":"Château_de_Brissac"},
+  {"name":"Edinburghs ondergrondse gewelven","lat":55.9490,"lon":-3.1870,"type":"spook","period":"18e eeuw","description":"Donkere tunnels onder Edinburgh met talloze spookverhalen","wiki":"Edinburgh_Vaults"}
+]
