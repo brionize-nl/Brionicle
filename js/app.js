@@ -12,8 +12,9 @@ const App = {
 
         Cameras.init(this.map);
         Flights.init(this.map);
+        Castles.init(this.map);
 
-        await this.loadCameras();
+        await Promise.all([this.loadCameras(), Castles.load()]);
 
         this.showActiveLayers();
         this.registerServiceWorker();
@@ -41,18 +42,19 @@ const App = {
     setMapStyle(style) {
         if (this.tileLayer) this.map.removeLayer(this.tileLayer);
 
+        this.tileLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+            maxZoom: 19
+        });
+
         if (style === 'old-world') {
-            this.tileLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-                maxZoom: 19
-            });
             document.body.classList.add('old-world');
+            if (this.isChecked('layer-castles') && Castles.data.length) {
+                Castles.show((c) => this.onCastleClick(c));
+            }
         } else {
-            this.tileLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-                maxZoom: 19
-            });
             document.body.classList.remove('old-world');
+            Castles.hide();
         }
 
         this.tileLayer.addTo(this.map);
@@ -96,7 +98,8 @@ const App = {
 
         const layerHandlers = {
             'layer-cameras': (on) => on ? Cameras.show(this.cameras, this.map, (c) => this.onCameraClick(c)) : Cameras.hide(),
-            'layer-flights': (on) => on ? Flights.show() : Flights.hide()
+            'layer-flights': (on) => on ? Flights.show() : Flights.hide(),
+            'layer-castles': (on) => on ? Castles.show((c) => this.onCastleClick(c)) : Castles.hide()
         };
 
         Object.entries(layerHandlers).forEach(([id, handler]) => {
@@ -140,6 +143,9 @@ const App = {
     showActiveLayers() {
         if (this.isChecked('layer-cameras')) Cameras.show(this.cameras, this.map, (c) => this.onCameraClick(c));
         if (this.isChecked('layer-flights')) Flights.show();
+        if (this.isChecked('layer-castles') && document.body.classList.contains('old-world')) {
+            Castles.show((c) => this.onCastleClick(c));
+        }
     },
 
     isChecked(id) {
@@ -177,6 +183,20 @@ const App = {
         if (ac.lat && ac.lon) {
             this.loadWeather(ac.lat, ac.lon, sections.weather);
         }
+    },
+
+    async onCastleClick(castle) {
+        this.openPanel();
+        this.setPanelHeader(castle.name, Castles.typeLabel(castle.type) + (castle.period ? ' — ' + castle.period : ''));
+
+        const sections = this.clearSections();
+        sections.camera.innerHTML = '<div class="loading">Wikipedia laden...</div>';
+
+        const wiki = await Castles.fetchWiki(castle.wiki);
+        sections.camera.innerHTML = Castles.renderHTML(castle, wiki);
+
+        this.loadWeather(castle.lat, castle.lon, sections.weather);
+        this.loadSunTimes(castle.lat, castle.lon, sections.sun);
     },
 
     async showLocationInfo(lat, lon) {
