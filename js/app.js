@@ -18,6 +18,7 @@ const App = {
         UFO.init(this.map);
         Roadtrip.init(this.map);
         RainRadar.init(this.map);
+        Windy.init(this.map);
         Flights.init(this.map);
 
         await Promise.all([
@@ -99,6 +100,7 @@ const App = {
             'layer-ufo': (on) => on ? UFO.show((u) => this.onUFOClick(u)) : UFO.hide(),
             'layer-flights': (on) => on ? Flights.show() : Flights.hide(),
             'layer-rainradar': (on) => on ? RainRadar.show() : RainRadar.hide(),
+            'layer-windy': (on) => on ? Windy.show() : Windy.hide(),
             'layer-festivals': (on) => on ? Pins.showLayer('festivals', (p) => this.onPinClick(p)) : Pins.hideLayer('festivals'),
             'layer-monuments': (on) => on ? Pins.showLayer('monuments', (p) => this.onPinClick(p)) : Pins.hideLayer('monuments'),
             'layer-telescopes': (on) => on ? Pins.showLayer('telescopes', (p) => this.onPinClick(p)) : Pins.hideLayer('telescopes'),
