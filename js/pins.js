@@ -155,16 +155,15 @@ const Pins = {
 
         const isLiveCam = ['wildlife', 'zoo', 'vulkaan', 'stadscam'].includes(item.type);
         const channelUrl = item.youtubeChannel.startsWith('UC')
-            ? `https://www.youtube.com/channel/${item.youtubeChannel}`
-            : `https://www.youtube.com/@${item.youtubeChannel}`;
+            ? `https://www.youtube.com/channel/${item.youtubeChannel}/live`
+            : `https://www.youtube.com/@${item.youtubeChannel}/live`;
 
-        let html = '<h3>Live stream</h3>';
+        let html = '';
 
-        if (isLiveCam) {
+        if (isLiveCam && item.youtubeVideo) {
+            html += '<h3>Live stream</h3>';
             const ytWrapperId = `yt-wrapper-${item.id}`;
-            const embedUrl = item.youtubeVideo
-                ? `https://www.youtube.com/embed/${item.youtubeVideo}?autoplay=1&mute=1`
-                : `https://www.youtube.com/embed/live_stream?channel=${item.youtubeChannel}`;
+            const embedUrl = `https://www.youtube.com/embed/${item.youtubeVideo}?autoplay=1&mute=1`;
             html += `
                 <div id="${ytWrapperId}" style="position:relative;border-radius:6px;overflow:hidden;margin-bottom:8px;background:#000;">
                     <iframe src="${embedUrl}"
@@ -182,7 +181,9 @@ const Pins = {
             `;
         }
 
-        html += `<a href="${channelUrl}" target="_blank" rel="noopener" style="font-size:12px;color:var(--accent);text-decoration:none;">YouTube kanaal openen &rarr;</a>`;
+        html += `<a href="${channelUrl}" target="_blank" rel="noopener"
+            style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:#c00;color:#fff;border-radius:6px;font-size:13px;font-weight:600;text-decoration:none;margin-bottom:8px;">
+            &#9654; Bekijk live op YouTube</a>`;
         return html;
     },
 

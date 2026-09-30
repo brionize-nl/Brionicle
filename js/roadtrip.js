@@ -82,14 +82,21 @@ const Roadtrip = {
 
     async calculateRoute() {
         const info = document.getElementById('rt-info');
-        info.innerHTML = '<p style="font-size:12px;color:var(--text-dim);">Route berekenen...</p>';
+        info.innerHTML = '<p style="font-size:12px;color:var(--accent);">Route berekenen...</p>';
 
         const start = this.startMarker.getLatLng();
         const end = this.endMarker.getLatLng();
 
+        const straightDist = this.haversine(start.lat, start.lng, end.lat, end.lng);
+
         try {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 8000);
+
             const url = `https://router.project-osrm.org/route/v1/driving/${start.lng},${start.lat};${end.lng},${end.lat}?overview=full&geometries=geojson&steps=true`;
-            const res = await fetch(url);
+            const res = await fetch(url, { signal: controller.signal });
+            clearTimeout(timeout);
+
             if (!res.ok) throw new Error('Route niet gevonden');
             const data = await res.json();
 
@@ -105,14 +112,14 @@ const Roadtrip = {
             const durStr = durH > 0 ? `${durH}u ${durM}min` : `${durM} min`;
 
             info.innerHTML = `
-                <div class="weather-grid" style="margin-top:8px;">
-                    <div class="weather-item">
-                        <span class="value">${distKm} km</span>
-                        <span class="label">Afstand</span>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;">
+                    <div>
+                        <span style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.5px;">Afstand</span>
+                        <div style="font-size:20px;font-weight:700;">${distKm} km</div>
                     </div>
-                    <div class="weather-item">
-                        <span class="value">${durStr}</span>
-                        <span class="label">Rijtijd</span>
+                    <div>
+                        <span style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.5px;">Rijtijd</span>
+                        <div style="font-size:20px;font-weight:700;">${durStr}</div>
                     </div>
                 </div>
             `;
@@ -120,7 +127,24 @@ const Roadtrip = {
             this.showPinsAlongRoute(route.geometry.coordinates);
 
         } catch (err) {
-            info.innerHTML = `<p style="font-size:12px;color:var(--error);">Fout: ${err.message}</p>`;
+            this.routeLayer.clearLayers();
+            L.polyline([[start.lat, start.lng], [end.lat, end.lng]], {
+                color: '#4fc3f7', weight: 2, opacity: 0.5, dashArray: '8 8'
+            }).addTo(this.routeLayer);
+
+            const distKm = Math.round(straightDist);
+            info.innerHTML = `
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;">
+                    <div>
+                        <span style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.5px;">Hemelsbreed</span>
+                        <div style="font-size:20px;font-weight:700;">${distKm} km</div>
+                    </div>
+                    <div>
+                        <span style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.5px;">Status</span>
+                        <div style="font-size:13px;color:var(--warning);">Route server niet bereikbaar</div>
+                    </div>
+                </div>
+            `;
         }
     },
 

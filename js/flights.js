@@ -28,7 +28,7 @@ const Flights = {
 
     startTracking() {
         this.stopTracking();
-        this.updateInterval = setInterval(() => this.update(), 5000);
+        this.updateInterval = setInterval(() => this.update(), 10000);
         this._onMove = () => {
             if (this._moveTimer) clearTimeout(this._moveTimer);
             this._moveTimer = setTimeout(() => this.update(), 800);
@@ -65,6 +65,30 @@ const Flights = {
         if (typeof deg !== 'number') return '';
         const dirs = ['N', 'NO', 'O', 'ZO', 'Z', 'ZW', 'W', 'NW'];
         return dirs[Math.round(deg / 45) % 8];
+    },
+
+    classifyAircraft(ac) {
+        const flags = ac.dbFlags || 0;
+        if (flags & 1) return { label: 'Militair', color: '#ef5350', icon: '&#9733;' };
+
+        const cat = (ac.category || '').toUpperCase();
+        if (cat === 'A7') return { label: 'Helikopter', color: '#ce93d8', icon: '&#128681;' };
+        if (cat === 'B2') return { label: 'Luchtballon', color: '#ffcc02', icon: '&#127880;' };
+        if (cat === 'B1' || cat === 'B4') return { label: 'Zweefvliegtuig', color: '#90caf9', icon: '&#9978;' };
+        if (cat === 'B6') return { label: 'Drone/UAV', color: '#ff9800', icon: '&#128296;' };
+        if (cat === 'A5') return { label: 'Zwaar vliegtuig', color: '#e040fb', icon: '&#9992;' };
+        if (cat === 'A3' || cat === 'A4') return { label: 'Lijnvlucht', color: '#4fc3f7', icon: '&#9992;' };
+        if (cat === 'A2') return { label: 'Zakenvlucht', color: '#81c784', icon: '&#9992;' };
+        if (cat === 'A1') return { label: 'Licht vliegtuig', color: '#ffb74d', icon: '&#9992;' };
+
+        const type = (ac.t || '').toUpperCase();
+        if (/^(B7[3-8]|A3[0-2]|A3[4-5]|B78|A22|E[1-2][7-9])/.test(type)) return { label: 'Lijnvlucht', color: '#4fc3f7', icon: '&#9992;' };
+        if (/^(C130|C17|F16|F35|KC|C5|B52|A400|NH90|CH47|AH64|EUFI)/.test(type)) return { label: 'Militair', color: '#ef5350', icon: '&#9733;' };
+        if (/^(C1[5-8]|C2[0-1]|PA|SR2|TB|DA[2-4]|DR4|P28)/.test(type)) return { label: 'Licht vliegtuig', color: '#ffb74d', icon: '&#9992;' };
+        if (/^(GLF|CL[36]|LJ[2-7]|C[56]8|FA[27]|E[1-5][0-5]|CRJ|BD70)/.test(type)) return { label: 'Zakenvlucht', color: '#81c784', icon: '&#9992;' };
+        if (/^(R22|R44|EC[1-6]|AS[3-5]|B[24]0[5-7]|A109|AW[1-2])/.test(type)) return { label: 'Helikopter', color: '#ce93d8', icon: '&#128681;' };
+
+        return { label: 'Vliegtuig', color: '#aaa', icon: '&#9992;' };
     },
 
     markerSvg(rotation, color, size) {
@@ -112,9 +136,11 @@ const Flights = {
                 const vRate = ac.baro_rate;
                 const vLabel = vRate > 100 ? '&#8599;' : vRate < -100 ? '&#8600;' : '';
 
+                const cls = this.classifyAircraft(ac);
                 let tip = `<b>${callsign || hex.toUpperCase()}</b>`;
                 if (ac.t) tip += ` <span style="opacity:0.7">${ac.t}</span>`;
-                if (altM !== null) tip += `<br>${altM.toLocaleString('nl-NL')}m`;
+                tip += `<br><span style="color:${cls.color}">${cls.label}</span>`;
+                if (altM !== null) tip += ` · ${altM.toLocaleString('nl-NL')}m`;
                 if (speedKmh) tip += ` · ${speedKmh} km/u ${vLabel}`;
 
                 const iconSize = isTracked ? 30 : 22;
@@ -217,6 +243,7 @@ const Flights = {
         const squawk = ac.squawk || '';
         const isTracked = ac.hex === this.trackedHex;
         const color = this.altitudeColor(alt);
+        const cls = this.classifyAircraft(ac);
 
         let vRateText = '';
         let vRateColor = 'var(--text)';
@@ -232,6 +259,7 @@ const Flights = {
             <div>
                 <div style="font-size:18px;font-weight:700;">${callsign || hex}</div>
                 <div style="font-size:12px;color:var(--text-dim);">${[type, reg].filter(Boolean).join(' · ')}</div>
+                <span style="display:inline-block;margin-top:4px;font-size:11px;font-weight:600;color:${cls.color};background:${cls.color}18;padding:2px 8px;border-radius:10px;">${cls.icon} ${cls.label}</span>
             </div>
         </div>`;
 
