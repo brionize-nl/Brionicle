@@ -42,10 +42,9 @@ const App = {
         if (this.tileLayer) this.map.removeLayer(this.tileLayer);
 
         if (style === 'old-world') {
-            this.tileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
-                maxZoom: 19,
-                subdomains: 'abcd'
+            this.tileLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+                maxZoom: 19
             });
             document.body.classList.add('old-world');
         } else {
