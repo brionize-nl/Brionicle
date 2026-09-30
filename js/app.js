@@ -11,14 +11,9 @@ const App = {
         this.initLocate();
 
         Cameras.init(this.map);
-        Earthquakes.init(this.map);
         Flights.init(this.map);
-        RainRadar.init(this.map);
 
-        await Promise.all([
-            this.loadCameras(),
-            this.loadEarthquakes()
-        ]);
+        await this.loadCameras();
 
         this.showActiveLayers();
         this.registerServiceWorker();
@@ -78,9 +73,7 @@ const App = {
 
         const layerHandlers = {
             'layer-cameras': (on) => on ? Cameras.show(this.cameras, this.map, (c) => this.onCameraClick(c)) : Cameras.hide(),
-            'layer-earthquakes': (on) => on ? Earthquakes.show((q) => this.onQuakeClick(q)) : Earthquakes.hide(),
-            'layer-flights': (on) => on ? Flights.show() : Flights.hide(),
-            'layer-rainradar': (on) => on ? RainRadar.show() : RainRadar.hide()
+            'layer-flights': (on) => on ? Flights.show() : Flights.hide()
         };
 
         Object.entries(layerHandlers).forEach(([id, handler]) => {
@@ -119,9 +112,7 @@ const App = {
 
     showActiveLayers() {
         if (this.isChecked('layer-cameras')) Cameras.show(this.cameras, this.map, (c) => this.onCameraClick(c));
-        if (this.isChecked('layer-earthquakes')) Earthquakes.show((q) => this.onQuakeClick(q));
         if (this.isChecked('layer-flights')) Flights.show();
-        if (this.isChecked('layer-rainradar')) RainRadar.show();
     },
 
     isChecked(id) {
@@ -134,11 +125,6 @@ const App = {
         console.log(`${this.cameras.length} camera's geladen`);
     },
 
-    async loadEarthquakes() {
-        const count = await Earthquakes.load();
-        console.log(`${count} aardbevingen geladen`);
-    },
-
     onCameraClick(cam) {
         this.currentCamera = cam;
         this.openPanel();
@@ -148,16 +134,6 @@ const App = {
         sections.camera.innerHTML = Cameras.renderCamera(cam);
         this.loadWeather(cam.lat, cam.lon, sections.weather);
         this.loadSunTimes(cam.lat, cam.lon, sections.sun);
-    },
-
-    onQuakeClick(quake) {
-        this.openPanel();
-        this.setPanelHeader(quake.place, 'Aardbeving');
-
-        const sections = this.clearSections();
-        sections.camera.innerHTML = Earthquakes.renderHTML(quake);
-        this.loadWeather(quake.lat, quake.lon, sections.weather);
-        this.loadSunTimes(quake.lat, quake.lon, sections.sun);
     },
 
     onFlightClick(ac) {
