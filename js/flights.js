@@ -17,7 +17,8 @@ const Flights = {
     async show() {
         this.layerGroup.addTo(this.map);
         this._createCounter();
-        await this.update();
+        this._updateCounter('Laden...');
+        this._prefetch();
         this.startTracking();
     },
 
@@ -102,6 +103,84 @@ const Flights = {
         </svg>`;
     },
 
+    _addOrUpdateMarker(ac) {
+        const lat = ac.lat, lon = ac.lon, hex = ac.hex;
+        if (!lat || !lon || !hex || ac.alt_baro === 'ground') return null;
+
+        const callsign = (ac.flight || '').trim();
+        const alt = typeof ac.alt_baro === 'number' ? ac.alt_baro : null;
+        const heading = ac.track;
+        const rotation = heading || 0;
+        const color = this.altitudeColor(alt);
+        const isTracked = hex === this.trackedHex;
+        const iconHtml = this.markerSvg(rotation, color, isTracked ? 30 : 22);
+
+        const altM = alt !== null ? Math.round(alt * 0.3048) : null;
+        const speedKmh = ac.gs ? Math.round(ac.gs * 1.852) : null;
+        const vRate = ac.baro_rate;
+        const vLabel = vRate > 100 ? '&#8599;' : vRate < -100 ? '&#8600;' : '';
+
+        const cls = this.classifyAircraft(ac);
+        let tip = `<b>${callsign || hex.toUpperCase()}</b>`;
+        if (ac.t) tip += ` <span style="opacity:0.7">${ac.t}</span>`;
+        tip += `<br><span style="color:${cls.color}">${cls.label}</span>`;
+        if (altM !== null) tip += ` · ${altM.toLocaleString('nl-NL')}m`;
+        if (speedKmh) tip += ` · ${speedKmh} km/u ${vLabel}`;
+
+        const iconSize = isTracked ? 30 : 22;
+        const half = iconSize / 2;
+
+        const existing = this.markers.get(hex);
+        if (existing) {
+            existing.setLatLng([lat, lon]);
+            existing.setIcon(L.divIcon({
+                className: 'flight-marker' + (isTracked ? ' flight-marker-tracked' : ''),
+                html: iconHtml,
+                iconSize: [iconSize, iconSize],
+                iconAnchor: [half, half]
+            }));
+            existing.setTooltipContent(tip);
+            existing._flightData = ac;
+        } else {
+            const marker = L.marker([lat, lon], {
+                icon: L.divIcon({
+                    className: 'flight-marker' + (isTracked ? ' flight-marker-tracked' : ''),
+                    html: iconHtml,
+                    iconSize: [iconSize, iconSize],
+                    iconAnchor: [half, half]
+                }),
+                zIndexOffset: isTracked ? 1000 : 0
+            });
+
+            marker.bindTooltip(tip, {
+                direction: 'top',
+                offset: [0, -12],
+                className: 'camera-tooltip'
+            });
+
+            marker._flightData = ac;
+            marker.on('click', (e) => {
+                L.DomEvent.stopPropagation(e);
+                this.onFlightClick(marker._flightData);
+            });
+
+            this.layerGroup.addLayer(marker);
+            this.markers.set(hex, marker);
+        }
+        return hex;
+    },
+
+    async _prefetch() {
+        try {
+            const res = await fetch('/api/flights?lat=52.13&lon=5.77&dist=30');
+            if (!res.ok) return;
+            const data = await res.json();
+            if (!data.ac) return;
+            data.ac.forEach(ac => this._addOrUpdateMarker(ac));
+            this._updateCounter(this.markers.size);
+        } catch {}
+    },
+
     async update() {
         try {
             const center = this.map.getCenter();
@@ -117,76 +196,9 @@ const Flights = {
             if (!data.ac) return;
 
             const activeHexes = new Set();
-
             data.ac.forEach(ac => {
-                const lat = ac.lat;
-                const lon = ac.lon;
-                const hex = ac.hex;
-                if (!lat || !lon || !hex || ac.alt_baro === 'ground') return;
-
-                activeHexes.add(hex);
-                const callsign = (ac.flight || '').trim();
-                const alt = typeof ac.alt_baro === 'number' ? ac.alt_baro : null;
-                const speed = ac.gs;
-                const heading = ac.track;
-                const rotation = heading || 0;
-                const color = this.altitudeColor(alt);
-                const isTracked = hex === this.trackedHex;
-
-                const iconHtml = this.markerSvg(rotation, color, isTracked ? 30 : 22);
-
-                const altM = alt !== null ? Math.round(alt * 0.3048) : null;
-                const speedKmh = speed ? Math.round(speed * 1.852) : null;
-                const vRate = ac.baro_rate;
-                const vLabel = vRate > 100 ? '&#8599;' : vRate < -100 ? '&#8600;' : '';
-
-                const cls = this.classifyAircraft(ac);
-                let tip = `<b>${callsign || hex.toUpperCase()}</b>`;
-                if (ac.t) tip += ` <span style="opacity:0.7">${ac.t}</span>`;
-                tip += `<br><span style="color:${cls.color}">${cls.label}</span>`;
-                if (altM !== null) tip += ` · ${altM.toLocaleString('nl-NL')}m`;
-                if (speedKmh) tip += ` · ${speedKmh} km/u ${vLabel}`;
-
-                const iconSize = isTracked ? 30 : 22;
-                const half = iconSize / 2;
-
-                const existing = this.markers.get(hex);
-                if (existing) {
-                    existing.setLatLng([lat, lon]);
-                    existing.setIcon(L.divIcon({
-                        className: 'flight-marker' + (isTracked ? ' flight-marker-tracked' : ''),
-                        html: iconHtml,
-                        iconSize: [iconSize, iconSize],
-                        iconAnchor: [half, half]
-                    }));
-                    existing.setTooltipContent(tip);
-                    existing._flightData = ac;
-                } else {
-                    const marker = L.marker([lat, lon], {
-                        icon: L.divIcon({
-                            className: 'flight-marker' + (isTracked ? ' flight-marker-tracked' : ''),
-                            html: iconHtml,
-                            iconSize: [iconSize, iconSize],
-                            iconAnchor: [half, half]
-                        }),
-                        zIndexOffset: isTracked ? 1000 : 0
-                    });
-
-                    marker.bindTooltip(tip, {
-                        direction: 'top',
-                        offset: [0, -12],
-                        className: 'camera-tooltip'
-                    });
-
-                    marker._flightData = ac;
-                    marker.on('click', (e) => {
-                        L.DomEvent.stopPropagation(e);
-                        this.onFlightClick(marker._flightData);
-                    });
-
-                    this.layerGroup.addLayer(marker);
-                    this.markers.set(hex, marker);
-                }
+                const hex = this._addOrUpdateMarker(ac);
+                if (hex) activeHexes.add(hex);
             });
 
             for (const [hex, marker] of this.markers) {
@@ -374,7 +386,7 @@ const Flights = {
 
     _updateCounter(count) {
         if (this._counterEl) {
-            this._counterEl.textContent = '✈ ' + count;
+            this._counterEl.textContent = typeof count === 'string' ? count : '✈ ' + count;
         }
     },
 
