@@ -5,10 +5,7 @@ const CORS_HEADERS = {
 };
 
 const ALLOWED_HOSTS = [
-    'stream.inmoves.nl', 'www.inmoves.nl',
-    'hd-auth.skylinewebcams.com', 'live-auth.skylinewebcams.com',
-    'hd.skylinewebcams.com', 'live.skylinewebcams.com',
-    'cdn.skylinewebcams.com'
+    'stream.inmoves.nl', 'www.inmoves.nl'
 ];
 
 function isAllowedUrl(urlStr) {
@@ -40,15 +37,11 @@ function rewriteManifest(text, baseUrl, camId, origin) {
     }).join('\n');
 }
 
-function proxyHeaders(targetUrl) {
-    const base = { 'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36' };
-    if (targetUrl.includes('skylinewebcams.com')) {
-        base['Referer'] = 'https://www.skylinewebcams.com/';
-        base['Origin'] = 'https://www.skylinewebcams.com';
-    } else {
-        base['Referer'] = 'https://www.rwsverkeersinfo.nl/';
-    }
-    return base;
+function proxyHeaders() {
+    return {
+        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+        'Referer': 'https://www.rwsverkeersinfo.nl/'
+    };
 }
 
 export async function onRequestOptions() {
@@ -103,7 +96,7 @@ export async function onRequestGet(context) {
 }
 
 async function proxyManifest(m3u8Url, camId, origin) {
-    const res = await fetch(m3u8Url, { headers: proxyHeaders(m3u8Url) });
+    const res = await fetch(m3u8Url, { headers: proxyHeaders() });
     if (!res.ok) {
         return new Response('Stream niet bereikbaar', { status: 502, headers: CORS_HEADERS });
     }
@@ -122,7 +115,7 @@ async function proxyManifest(m3u8Url, camId, origin) {
 }
 
 async function proxySegment(segUrl, camId, origin) {
-    const res = await fetch(segUrl, { headers: proxyHeaders(segUrl) });
+    const res = await fetch(segUrl, { headers: proxyHeaders() });
     if (!res.ok) {
         return new Response('Segment niet bereikbaar', { status: 502, headers: CORS_HEADERS });
     }

@@ -102,6 +102,7 @@ const Cameras = {
             clearInterval(this.liveInterval);
             this.liveInterval = null;
         }
+        this._activeCamId = null;
         this.destroyHls();
     },
 
@@ -173,15 +174,18 @@ const Cameras = {
             this.showLiveView(cam, containerId, 'snapshot');
         };
         img.onerror = () => {
-            container.innerHTML = cam.rwsPageUrl
-                ? `<a href="${cam.rwsPageUrl}" target="_blank" rel="noopener"
+            let html = '<p style="color:var(--text-dim);font-size:12px;margin-bottom:8px;">Geen direct beeld beschikbaar</p>';
+            if (cam.rwsPageUrl) {
+                html += `<a href="${cam.rwsPageUrl}" target="_blank" rel="noopener"
                       style="display:flex;align-items:center;gap:8px;padding:14px 16px;
                              background:var(--accent);color:#fff;text-decoration:none;
                              border-radius:8px;font-size:14px;font-weight:600;
                              margin:8px 0;justify-content:center;">
                        &#9654; Bekijk live camera op RWS
-                   </a>`
-                : '<p style="color:var(--text-dim);font-size:12px;">Camera niet beschikbaar</p>';
+                   </a>`;
+            }
+            html += this.renderButtons(cam, 'snapshot');
+            container.innerHTML = html;
         };
         img.src = `/api/camera-image?id=${cam.id}&t=${Date.now()}`;
     },
@@ -191,6 +195,8 @@ const Cameras = {
         if (!container) return;
         this.stopLive();
         this._hlsRetryCount = 0;
+        this.desktopAvailable = null;
+        this._activeCamId = cam.id;
 
         this.requestDesktop(cam, 'start_live');
         this.tryHls(cam, containerId);
@@ -286,12 +292,14 @@ const Cameras = {
         const endpoint = source === 'desktop' ? '/api/camera-live' : '/api/camera-image';
         const interval = source === 'desktop' ? 2000 : 3000;
 
+        const camId = cam.id;
         this.liveInterval = setInterval(() => {
-            const liveImg = document.getElementById(`cam-live-${cam.id}`);
+            if (this._activeCamId !== camId) { this.stopLive(); return; }
+            const liveImg = document.getElementById(`cam-live-${camId}`);
             if (!liveImg) { this.stopLive(); return; }
             const next = new Image();
             next.onload = () => { liveImg.src = next.src; };
-            next.src = `${endpoint}?id=${cam.id}&t=${Date.now()}`;
+            next.src = `${endpoint}?id=${camId}&t=${Date.now()}`;
         }, interval);
     },
 

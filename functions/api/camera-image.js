@@ -4,8 +4,25 @@ const CORS_HEADERS = {
     'Access-Control-Max-Age': '86400'
 };
 
+let cachedCameras = null;
+let cacheTime = 0;
+const CACHE_TTL = 300000;
+
 export async function onRequestOptions() {
     return new Response(null, { status: 204, headers: CORS_HEADERS });
+}
+
+async function getCameras() {
+    if (cachedCameras && Date.now() - cacheTime < CACHE_TTL) {
+        return cachedCameras;
+    }
+    const res = await fetch('https://api.rwsverkeersinfo.nl/api/cameras', {
+        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Brionicle/1.0)' }
+    });
+    if (!res.ok) throw new Error('RWS API ' + res.status);
+    cachedCameras = await res.json();
+    cacheTime = Date.now();
+    return cachedCameras;
 }
 
 export async function onRequestGet(context) {
@@ -20,11 +37,7 @@ export async function onRequestGet(context) {
     }
 
     try {
-        const apiRes = await fetch('https://api.rwsverkeersinfo.nl/api/cameras', {
-            headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Brionicle/1.0)' }
-        });
-        if (!apiRes.ok) throw new Error('RWS API ' + apiRes.status);
-        const cameras = await apiRes.json();
+        const cameras = await getCameras();
         const cam = cameras.find(c => String(c.id) === id);
 
         if (!cam) {
