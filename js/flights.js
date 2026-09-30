@@ -8,6 +8,7 @@ const Flights = {
     _moveTimer: null,
     _counterEl: null,
     _errorTimer: null,
+    _routeCache: new Map(),
 
     init(map) {
         this.map = map;
@@ -289,6 +290,13 @@ const Flights = {
             </div>
         </div>`;
 
+        if (callsign) {
+            html += `<div id="flight-route" style="margin-bottom:10px;">
+                <span style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.5px;">Route</span>
+                <div style="font-size:13px;color:var(--text-dim);">Laden...</div>
+            </div>`;
+        }
+
         if (altM !== null) {
             html += `<div style="margin-bottom:10px;">
                 <div style="display:flex;justify-content:space-between;align-items:baseline;">
@@ -365,6 +373,66 @@ const Flights = {
         const marker = this.markers.get(hex);
         if (marker && marker._flightData) {
             this.onFlightClick(marker._flightData);
+        }
+    },
+
+    async loadRoute(ac) {
+        const callsign = (ac.flight || '').trim();
+        if (!callsign) return;
+
+        const el = document.getElementById('flight-route');
+        if (!el) return;
+
+        const cached = this._routeCache.get(callsign);
+        if (cached !== undefined) {
+            el.innerHTML = cached || '';
+            if (!cached) el.remove();
+            return;
+        }
+
+        try {
+            const res = await fetch(`/api/flight-route?callsign=${encodeURIComponent(callsign)}`);
+            if (!res.ok) { this._routeCache.set(callsign, ''); el.remove(); return; }
+            const data = await res.json();
+
+            const route = data.response && data.response.flightroute;
+            if (!route || !route.origin || !route.destination) {
+                this._routeCache.set(callsign, '');
+                el.remove();
+                return;
+            }
+
+            const orig = route.origin;
+            const dest = route.destination;
+            const origCode = orig.iata_code || orig.icao_code || '';
+            const destCode = dest.iata_code || dest.icao_code || '';
+            const origName = orig.municipality || orig.name || '';
+            const destName = dest.municipality || dest.name || '';
+
+            const html = `<span style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.5px;">Route</span>
+                <div style="display:flex;align-items:center;gap:8px;margin-top:2px;">
+                    <div style="text-align:center;">
+                        <div style="font-size:20px;font-weight:700;">${origCode}</div>
+                        <div style="font-size:11px;color:var(--text-dim);">${origName}</div>
+                    </div>
+                    <div style="flex:1;display:flex;align-items:center;gap:4px;">
+                        <div style="flex:1;height:1px;background:var(--text-dim);opacity:0.3;"></div>
+                        <span style="font-size:16px;color:var(--text-dim);">&#9992;</span>
+                        <div style="flex:1;height:1px;background:var(--text-dim);opacity:0.3;"></div>
+                    </div>
+                    <div style="text-align:center;">
+                        <div style="font-size:20px;font-weight:700;">${destCode}</div>
+                        <div style="font-size:11px;color:var(--text-dim);">${destName}</div>
+                    </div>
+                </div>`;
+
+            this._routeCache.set(callsign, html);
+            if (document.getElementById('flight-route')) {
+                document.getElementById('flight-route').innerHTML = html;
+            }
+        } catch {
+            this._routeCache.set(callsign, '');
+            el.remove();
         }
     },
 

@@ -169,6 +169,7 @@ const App = {
 
         const sections = this.clearSections();
         sections.camera.innerHTML = Flights.renderHTML(ac);
+        Flights.loadRoute(ac);
 
         if (ac.lat && ac.lon) {
             this.loadWeather(ac.lat, ac.lon, sections.weather);
