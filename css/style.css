@@ -233,6 +233,12 @@ html, body {
     background: rgba(0, 0, 0, 0.8);
 }
 
+#camera-container iframe {
+    width: 100%;
+    border-radius: 6px;
+    background: #000;
+}
+
 /* Top controls */
 
 .top-controls {
@@ -310,25 +316,21 @@ html, body {
     accent-color: var(--accent);
 }
 
-.iss-marker {
+/* Flight marker */
+
+.flight-marker {
     background: none !important;
     border: none !important;
+    transition: transform 3s linear !important;
 }
 
-.iss-icon {
-    font-size: 24px;
-    filter: drop-shadow(0 0 6px rgba(79, 195, 247, 0.8));
-    animation: iss-pulse 2s ease-in-out infinite;
+.flight-marker-tracked {
+    filter: drop-shadow(0 0 8px #fff) drop-shadow(0 0 16px var(--accent)) !important;
 }
 
-@keyframes iss-pulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.15); }
-}
-
-.radio-station:hover {
-    background: var(--bg) !important;
-    border-radius: 4px;
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
 }
 
 /* Leaflet overrides */
@@ -357,12 +359,6 @@ html, body {
     color: var(--accent-dim) !important;
 }
 
-#camera-container iframe {
-    width: 100%;
-    border-radius: 6px;
-    background: #000;
-}
-
 .camera-tooltip {
     background: var(--bg-panel) !important;
     color: var(--text) !important;
@@ -375,81 +371,6 @@ html, body {
 
 .camera-tooltip::before {
     border-top-color: var(--border) !important;
-}
-
-/* UFO marker */
-
-.ufo-marker {
-    background: none !important;
-    border: none !important;
-}
-
-@keyframes blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.3; }
-}
-
-/* Pin marker */
-
-.pin-marker {
-    background: none !important;
-    border: none !important;
-}
-
-/* Flight marker */
-
-.flight-marker {
-    background: none !important;
-    border: none !important;
-    transition: transform 3s linear !important;
-}
-
-.flight-marker-tracked {
-    filter: drop-shadow(0 0 8px #fff) drop-shadow(0 0 16px var(--accent)) !important;
-}
-
-/* Roadtrip panel */
-
-.roadtrip-panel {
-    position: fixed;
-    bottom: 16px;
-    left: 16px;
-    z-index: 999;
-    background: var(--bg-panel);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 12px;
-    width: 260px;
-}
-
-.roadtrip-panel.hidden {
-    display: none;
-}
-
-.rt-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 8px;
-}
-
-.rt-controls {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-
-.rt-point {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 4px 8px;
-    background: var(--bg-section);
-    border-radius: 4px;
-}
-
-.rt-point:hover {
-    background: var(--bg);
 }
 
 /* Mobile */
@@ -494,11 +415,5 @@ html, body {
     .top-controls {
         top: 10px;
         left: 10px;
-    }
-
-    .roadtrip-panel {
-        bottom: 10px;
-        left: 10px;
-        width: calc(100% - 20px);
     }
 }
