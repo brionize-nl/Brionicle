@@ -14,6 +14,30 @@
 </head>
 <body>
     <div id="map"></div>
+    <div id="vignette"></div>
+    <div class="compass-rose">
+        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <polygon points="50,5 46,47 50,50" fill="#2c1e0f"/>
+            <polygon points="50,5 54,47 50,50" fill="#7a6548"/>
+            <polygon points="95,50 53,46 50,50" fill="#5c4530"/>
+            <polygon points="95,50 53,54 50,50" fill="#a08b6c"/>
+            <polygon points="50,95 54,53 50,50" fill="#5c4530"/>
+            <polygon points="50,95 46,53 50,50" fill="#a08b6c"/>
+            <polygon points="5,50 47,54 50,50" fill="#2c1e0f"/>
+            <polygon points="5,50 47,46 50,50" fill="#7a6548"/>
+            <polygon points="79,21 54,46 50,50" fill="#5c4530" opacity="0.5"/>
+            <polygon points="79,21 46,54 50,50" fill="#a08b6c" opacity="0.3"/>
+            <polygon points="79,79 54,54 50,50" fill="#5c4530" opacity="0.5"/>
+            <polygon points="79,79 46,46 50,50" fill="#a08b6c" opacity="0.3"/>
+            <polygon points="21,79 46,54 50,50" fill="#5c4530" opacity="0.5"/>
+            <polygon points="21,79 54,46 50,50" fill="#a08b6c" opacity="0.3"/>
+            <polygon points="21,21 46,46 50,50" fill="#5c4530" opacity="0.5"/>
+            <polygon points="21,21 54,54 50,50" fill="#a08b6c" opacity="0.3"/>
+            <circle cx="50" cy="50" r="4" fill="#c5a55a" stroke="#2c1e0f" stroke-width="0.8"/>
+            <circle cx="50" cy="50" r="1.5" fill="#2c1e0f"/>
+            <text x="50" y="2" text-anchor="middle" font-size="9" font-weight="bold" fill="#c5a55a" font-family="Georgia, serif">N</text>
+        </svg>
+    </div>
 
     <div id="panel" class="panel">
         <button id="panel-close" class="panel-close" aria-label="Sluiten">&times;</button>
@@ -40,6 +64,11 @@
                 </svg>
             </button>
             <div id="layers-menu" class="layers-menu hidden">
+                <div class="layers-group">
+                    <span class="layers-label">Kaartstijl</span>
+                    <label><input type="radio" name="mapstyle" value="old-world" checked> Oude kaart</label>
+                    <label><input type="radio" name="mapstyle" value="dark"> Donker</label>
+                </div>
                 <div class="layers-group">
                     <label><input type="checkbox" id="layer-cameras" checked> Camera's</label>
                     <label><input type="checkbox" id="layer-weather" checked> Weer bij klik</label>

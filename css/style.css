@@ -33,8 +33,87 @@ html, body {
     background: var(--bg);
 }
 
-.leaflet-tile-pane {
+body:not(.old-world) .leaflet-tile-pane {
     filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(1.2) saturate(0.4);
+}
+
+/* Oude wereldkaart thema (1600-1800 stijl) */
+
+body.old-world {
+    --bg: #1c1408;
+    --bg-panel: #2c1e0f;
+    --bg-section: #3a2a18;
+    --text: #d4c5a9;
+    --text-dim: #a08b6c;
+    --accent: #c5a55a;
+    --accent-dim: #8b7340;
+    --border: #5c4530;
+    --success: #7a9e4a;
+    --warning: #d4a030;
+    --error: #c45a3a;
+}
+
+body.old-world .leaflet-tile-pane {
+    filter: sepia(0.75) saturate(0.4) brightness(0.85) contrast(1.15);
+}
+
+body.old-world #map {
+    background: #c4b496;
+}
+
+#vignette {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 500;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+}
+
+body.old-world #vignette {
+    opacity: 1;
+    background: radial-gradient(ellipse at center, transparent 30%, rgba(28, 20, 8, 0.45) 100%);
+}
+
+.compass-rose {
+    position: fixed;
+    bottom: 30px;
+    right: 16px;
+    width: 80px;
+    height: 80px;
+    z-index: 600;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    pointer-events: none;
+}
+
+body.old-world .compass-rose {
+    opacity: 0.75;
+}
+
+body.old-world .camera-marker {
+    box-shadow: 0 0 6px rgba(197, 165, 90, 0.5);
+}
+
+body.old-world .camera-marker:hover {
+    box-shadow: 0 0 12px rgba(197, 165, 90, 0.8);
+}
+
+body.old-world .leaflet-control-attribution {
+    background: rgba(28, 20, 8, 0.7) !important;
+}
+
+.layers-label {
+    display: block;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+}
+
+.layers-menu input[type="radio"] {
+    accent-color: var(--accent);
 }
 
 .camera-marker {

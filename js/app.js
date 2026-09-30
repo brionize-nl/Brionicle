@@ -27,16 +27,40 @@ const App = {
             attributionControl: true
         });
 
-        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-            maxZoom: 19
-        }).addTo(this.map);
+        this.tileLayer = null;
+        const saved = localStorage.getItem('brionicle-mapstyle') || 'old-world';
+        this.setMapStyle(saved);
 
         this.map.on('click', (e) => {
             if (!this.panelOpen) {
                 this.showLocationInfo(e.latlng.lat, e.latlng.lng);
             }
         });
+    },
+
+    setMapStyle(style) {
+        if (this.tileLayer) this.map.removeLayer(this.tileLayer);
+
+        if (style === 'old-world') {
+            this.tileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+                maxZoom: 19,
+                subdomains: 'abcd'
+            });
+            document.body.classList.add('old-world');
+        } else {
+            this.tileLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+                maxZoom: 19
+            });
+            document.body.classList.remove('old-world');
+        }
+
+        this.tileLayer.addTo(this.map);
+        localStorage.setItem('brionicle-mapstyle', style);
+
+        const radio = document.querySelector(`input[name="mapstyle"][value="${style}"]`);
+        if (radio) radio.checked = true;
     },
 
     initPanel() {
@@ -79,6 +103,10 @@ const App = {
         Object.entries(layerHandlers).forEach(([id, handler]) => {
             const el = document.getElementById(id);
             if (el) el.addEventListener('change', (e) => handler(e.target.checked));
+        });
+
+        document.querySelectorAll('input[name="mapstyle"]').forEach(radio => {
+            radio.addEventListener('change', (e) => this.setMapStyle(e.target.value));
         });
     },
 
