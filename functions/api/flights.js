@@ -11,11 +11,11 @@ export async function onRequestOptions() {
 
 export async function onRequestGet(context) {
     const url = new URL(context.request.url);
-    const lat = url.searchParams.get('lat');
-    const lon = url.searchParams.get('lon');
-    const dist = url.searchParams.get('dist') || '100';
+    const lat = parseFloat(url.searchParams.get('lat'));
+    const lon = parseFloat(url.searchParams.get('lon'));
+    const dist = Math.max(1, Math.min(250, parseInt(url.searchParams.get('dist'), 10) || 100));
 
-    if (!lat || !lon) {
+    if (isNaN(lat) || isNaN(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
         return new Response(JSON.stringify({ error: 'lat and lon required' }), {
             status: 400,
             headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }
@@ -23,7 +23,7 @@ export async function onRequestGet(context) {
     }
 
     try {
-        const apiUrl = `https://api.adsb.lol/v2/lat/${lat}/lon/${lon}/dist/${dist}`;
+        const apiUrl = `https://api.adsb.lol/v2/lat/${lat.toFixed(4)}/lon/${lon.toFixed(4)}/dist/${dist}`;
         const response = await fetch(apiUrl, {
             headers: { 'User-Agent': 'Brionicle/1.0' }
         });

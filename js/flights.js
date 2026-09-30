@@ -6,6 +6,8 @@ const Flights = {
     trackedHex: null,
     _onMove: null,
     _moveTimer: null,
+    _counterEl: null,
+    _errorTimer: null,
 
     init(map) {
         this.map = map;
@@ -14,6 +16,7 @@ const Flights = {
 
     async show() {
         this.layerGroup.addTo(this.map);
+        this._createCounter();
         await this.update();
         this.startTracking();
     },
@@ -24,6 +27,7 @@ const Flights = {
         this.markers.clear();
         this.layerGroup.clearLayers();
         this.map.removeLayer(this.layerGroup);
+        this._removeCounter();
     },
 
     startTracking() {
@@ -177,7 +181,7 @@ const Flights = {
                     marker._flightData = ac;
                     marker.on('click', (e) => {
                         L.DomEvent.stopPropagation(e);
-                        this.onFlightClick(ac);
+                        this.onFlightClick(marker._flightData);
                     });
 
                     this.layerGroup.addLayer(marker);
@@ -193,15 +197,24 @@ const Flights = {
                 }
             }
 
+            this._updateCounter(activeHexes.size);
+
             if (this.trackedHex) {
                 const tracked = this.markers.get(this.trackedHex);
                 if (tracked) {
                     this.map.panTo(tracked.getLatLng(), { animate: true, duration: 1 });
+                    if (tracked._flightData) {
+                        const el = document.getElementById('camera-container');
+                        if (el && el.querySelector(`[data-flight-hex="${this.trackedHex}"]`)) {
+                            el.innerHTML = this.renderHTML(tracked._flightData);
+                        }
+                    }
                 }
             }
 
         } catch (e) {
             console.warn('Flights update:', e.message);
+            this._showError('Vliegtuigdata niet beschikbaar');
         }
     },
 
@@ -254,7 +267,8 @@ const Flights = {
             else vRateText = '&#8594; Vlak';
         }
 
-        let html = `<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+        let html = `<div data-flight-hex="${ac.hex}">`;
+        html += `<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
             <div style="flex-shrink:0;">${this.markerSvg(0, color, 48)}</div>
             <div>
                 <div style="font-size:18px;font-weight:700;">${callsign || hex}</div>
@@ -320,7 +334,7 @@ const Flights = {
             <a href="https://globe.adsb.fi/?icao=${ac.hex}" target="_blank" rel="noopener"
                 style="display:flex;align-items:center;font-size:12px;color:var(--accent);text-decoration:none;">
                 ADS-B &rarr;</a>
-        </div>`;
+        </div></div>`;
 
         return html;
     },
@@ -336,9 +350,47 @@ const Flights = {
             }
         }
 
-        const tracked = this.markers.get(this.trackedHex);
-        if (tracked && tracked._flightData) {
-            this.onFlightClick(tracked._flightData);
+        const marker = this.markers.get(hex);
+        if (marker && marker._flightData) {
+            this.onFlightClick(marker._flightData);
         }
+    },
+
+    _createCounter() {
+        if (this._counterEl) return;
+        const el = document.createElement('div');
+        el.id = 'flight-counter';
+        el.style.cssText = 'position:absolute;bottom:30px;right:10px;z-index:800;background:rgba(15,15,26,0.85);color:#ccc;padding:4px 10px;border-radius:12px;font-size:12px;pointer-events:none;backdrop-filter:blur(4px);';
+        document.getElementById('map').appendChild(el);
+        this._counterEl = el;
+    },
+
+    _removeCounter() {
+        if (this._counterEl) {
+            this._counterEl.remove();
+            this._counterEl = null;
+        }
+    },
+
+    _updateCounter(count) {
+        if (this._counterEl) {
+            this._counterEl.textContent = '✈ ' + count;
+        }
+    },
+
+    _showError(msg) {
+        let el = document.getElementById('flight-error');
+        if (el) el.remove();
+        el = document.createElement('div');
+        el.id = 'flight-error';
+        el.style.cssText = 'position:absolute;top:60px;left:50%;transform:translateX(-50%);z-index:900;background:rgba(239,83,80,0.9);color:#fff;padding:6px 16px;border-radius:8px;font-size:12px;pointer-events:none;transition:opacity 0.5s;';
+        document.getElementById('map').appendChild(el);
+        el.textContent = msg;
+        el.style.opacity = '1';
+        clearTimeout(this._errorTimer);
+        this._errorTimer = setTimeout(() => {
+            el.style.opacity = '0';
+            setTimeout(() => { if (el.parentNode) el.remove(); }, 500);
+        }, 4000);
     }
 };
