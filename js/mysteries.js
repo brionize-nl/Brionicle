@@ -45,6 +45,18 @@ const Mysteries = {
                 <circle cx="9" cy="12" r="1.2" fill="#2c1e0f"/>
             </svg>`;
         }
+        if (type === 'tempel') {
+            return `<svg viewBox="0 0 18 18" width="16" height="16">
+                <polygon points="7,0 11,0 10,7 18,7 18,11 10,11 11,18 7,18 8,11 0,11 0,7 8,7" fill="#8b2020"/>
+            </svg>`;
+        }
+        if (type === 'kerk') {
+            return `<svg viewBox="0 0 16 20" width="14" height="18">
+                <rect x="6" y="2" width="4" height="18" fill="#5c4530" rx="0.5"/>
+                <rect x="2" y="6" width="12" height="4" fill="#5c4530" rx="0.5"/>
+                <circle cx="8" cy="8" r="1.5" fill="#8b6914" opacity="0.6"/>
+            </svg>`;
+        }
         return `<svg viewBox="0 0 16 20" width="16" height="20">
             <path d="M8,2 C12,6 14,10 14,14 C14,17 11,19 8,19 C5,19 2,17 2,14 C2,10 4,6 8,2 Z" fill="#6b4c7a" opacity="0.85"/>
             <path d="M8,7 C10,9 11,11 11,14 C11,16 9.5,17 8,17 C6.5,17 5,16 5,14 C5,11 6,9 8,7 Z" fill="#9b7cb0" opacity="0.5"/>
@@ -52,7 +64,13 @@ const Mysteries = {
     },
 
     typeLabel(type) {
-        return type === 'loge' ? 'Vrijmetselaarsloge' : 'Paranormale locatie';
+        const labels = {
+            loge: 'Vrijmetselaarsloge',
+            tempel: 'Tempeliers',
+            kerk: 'Kerk / Basiliek',
+            spook: 'Paranormale locatie'
+        };
+        return labels[type] || type;
     },
 
     async fetchWiki(pageName) {

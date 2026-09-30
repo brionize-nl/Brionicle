@@ -4,7 +4,7 @@
   {"name":"Freemasons' Hall","lat":51.5156,"lon":-0.1200,"type":"loge","period":"1933","description":"Grootste vrijmetselaarsgebouw van Engeland, Great Queen Street","wiki":"Freemasons'_Hall,_London"},
   {"name":"Grand Orient de France","lat":48.8731,"lon":2.3427,"type":"loge","period":"1773","description":"Hoofdkwartier van de oudste Franse vrijmetselaarsorde","wiki":"Grand_Orient_de_France"},
   {"name":"Rosslyn Chapel","lat":55.8554,"lon":-3.1606,"type":"loge","period":"1446","description":"Mysterieuze kapel vol vrijmetselaarssymboliek","wiki":"Rosslyn_Chapel"},
-  {"name":"Temple Church","lat":51.5118,"lon":-0.1107,"type":"loge","period":"1185","description":"Tempelierskerk met ronde nave, gebouwd naar model van de Heilig Grafkerk","wiki":"Temple_Church"},
+  {"name":"Temple Church","lat":51.5118,"lon":-0.1107,"type":"tempel","period":"1185","description":"Tempelierskerk met ronde nave, gebouwd naar model van de Heilig Grafkerk","wiki":"Temple_Church"},
   {"name":"Logegebouw Dordrecht","lat":51.8133,"lon":4.6736,"type":"loge","period":"18e eeuw","description":"Een van de oudste logegebouwen van Nederland"},
   {"name":"Logegebouw Leiden","lat":52.1583,"lon":4.4900,"type":"loge","period":"18e eeuw","description":"Historisch vrijmetselaarsgebouw in het centrum van Leiden"},
 
@@ -24,5 +24,29 @@
   {"name":"Ancient Ram Inn","lat":51.7692,"lon":-2.1639,"type":"spook","period":"1145","description":"Middeleeuws herenhuis in Gloucestershire, beroemd om paranormale activiteit","wiki":"Ancient_Ram_Inn"},
   {"name":"Catacomben van Parijs","lat":48.8339,"lon":2.3322,"type":"spook","period":"18e eeuw","description":"Ondergronds ossuarium met de resten van zes miljoen mensen","wiki":"Catacomben_van_Parijs"},
   {"name":"Château de Brissac","lat":47.3533,"lon":-0.4500,"type":"spook","period":"11e eeuw","description":"Hoogste kasteel van Frankrijk, bespookt door de Groene Dame","wiki":"Château_de_Brissac"},
-  {"name":"Edinburghs ondergrondse gewelven","lat":55.9490,"lon":-3.1870,"type":"spook","period":"18e eeuw","description":"Donkere tunnels onder Edinburgh met talloze spookverhalen","wiki":"Edinburgh_Vaults"}
+  {"name":"Edinburghs ondergrondse gewelven","lat":55.9490,"lon":-3.1870,"type":"spook","period":"18e eeuw","description":"Donkere tunnels onder Edinburgh met talloze spookverhalen","wiki":"Edinburgh_Vaults"},
+
+  {"name":"Convento de Cristo","lat":39.6036,"lon":-8.4181,"type":"tempel","period":"12e eeuw","description":"Hoofdkwartier van de Portugese Tempeliers, rond kerkschip naar model van de Heilig Grafkerk","wiki":"Christusklooster_(Tomar)"},
+  {"name":"Château de Chinon","lat":47.1667,"lon":0.2333,"type":"tempel","period":"10e eeuw","description":"Hier werd Jacques de Molay, laatste Grootmeester der Tempeliers, gevangen gehouden","wiki":"Château_de_Chinon"},
+  {"name":"Commanderie d'Arville","lat":48.0667,"lon":1.1000,"type":"tempel","period":"12e eeuw","description":"Best bewaarde Tempelierscommanderie van Frankrijk","wiki":"Commanderie_d'Arville"},
+  {"name":"La Couvertoirade","lat":43.9119,"lon":3.3158,"type":"tempel","period":"12e eeuw","description":"Versterkt Tempeliersdorp op het Larzac-plateau, vrijwel intact","wiki":"La_Couvertoirade"},
+  {"name":"Iglesia de la Vera Cruz","lat":40.9492,"lon":-4.1253,"type":"tempel","period":"1208","description":"Mysterieuze ronde kerk in Segovia, toegeschreven aan de Tempeliers","wiki":"Iglesia_de_la_Vera_Cruz"},
+  {"name":"Kasteel van Miravet","lat":41.0436,"lon":0.5886,"type":"tempel","period":"12e eeuw","description":"Laatste Tempeliersburcht in Spanje, belegerd in 1308","wiki":"Kasteel_van_Miravet"},
+  {"name":"Basiliek van Vézelay","lat":47.4653,"lon":3.7475,"type":"tempel","period":"9e eeuw","description":"Vertrekpunt van de Tweede Kruistocht, Bernardus van Clairvaux preekte hier de kruistocht","wiki":"Basiliek_van_Vézelay"},
+
+  {"name":"Kathedraal van Chartres","lat":48.4478,"lon":1.4875,"type":"kerk","period":"12e eeuw","description":"Beroemd labyrint in de vloer, glas-in-loodramen vol esoterische symboliek","wiki":"Kathedraal_van_Chartres"},
+  {"name":"Sint-Servaasbasiliek","lat":50.8486,"lon":5.6878,"type":"kerk","period":"6e eeuw","description":"Oudste kerk van Nederland, met crypte en reliekenschat van Sint Servaas","wiki":"Sint-Servaasbasiliek_(Maastricht)"},
+  {"name":"Onze-Lieve-Vrouwebasiliek","lat":50.8469,"lon":5.6850,"type":"kerk","period":"1000","description":"Romaanse basiliek met crypte uit de 11e eeuw, miraculeus Mariabeeld","wiki":"Onze-Lieve-Vrouwebasiliek_(Maastricht)"},
+  {"name":"Domkerk","lat":52.0907,"lon":5.1214,"type":"kerk","period":"13e eeuw","description":"Gotische kathedraal met middeleeuws kloostergang, toren los van de kerk na storm van 1674","wiki":"Domkerk_(Utrecht)"},
+  {"name":"Sint-Janskathedraal","lat":51.6878,"lon":5.3078,"type":"kerk","period":"14e eeuw","description":"Gotisch meesterwerk met 96 luchtboogbeelden vol mysterieuze figuren en demonen","wiki":"Sint-Janskathedraal_(s-Hertogenbosch)"},
+  {"name":"Oude Kerk","lat":52.3744,"lon":4.8981,"type":"kerk","period":"1213","description":"Oudste gebouw van Amsterdam, gebouwd op een middeleeuws kerkhof","wiki":"Oude_Kerk_(Amsterdam)"},
+  {"name":"Pieterskerk","lat":52.1583,"lon":4.4928,"type":"kerk","period":"1121","description":"Hier baden de Pilgrim Fathers voor hun vertrek naar Amerika","wiki":"Pieterskerk_(Leiden)"},
+  {"name":"Abdij Rolduc","lat":50.8633,"lon":6.0644,"type":"kerk","period":"1104","description":"Middeleeuws klooster met romaanse crypte en ondergrondse gangen","wiki":"Abdij_Rolduc"},
+  {"name":"Martinikerk","lat":52.2167,"lon":6.5681,"type":"kerk","period":"13e eeuw","description":"Gotische kerk met middeleeuwse fresco's, herontdekt onder kalklagen","wiki":"Martinikerk_(Groningen)"},
+  {"name":"Notre-Dame de Paris","lat":48.8530,"lon":2.3499,"type":"kerk","period":"1163","description":"Gotisch meesterwerk met alchemistische symboliek in de gevelbeelden","wiki":"Notre-Dame_(Parijs)"},
+  {"name":"Hagia Sophia","lat":41.0086,"lon":28.9802,"type":"kerk","period":"537","description":"1500 jaar oud, kerk van het Byzantijnse Rijk, later moskee, vol verborgen mozaïeken","wiki":"Hagia_Sophia"},
+  {"name":"Kölner Dom","lat":50.9413,"lon":6.9583,"type":"kerk","period":"1248","description":"Bevat het Driekoningenschrijn, de vermeelde relieken van de Drie Wijzen","wiki":"Dom_van_Keulen"},
+  {"name":"Sint-Pietersbasiliek","lat":41.9022,"lon":12.4539,"type":"kerk","period":"1506","description":"Gebouwd boven het vermeelde graf van apostel Petrus, centrum van de katholieke wereld","wiki":"Sint-Pietersbasiliek"},
+  {"name":"Westminster Abbey","lat":51.4994,"lon":-0.1273,"type":"kerk","period":"960","description":"Kroningskerk met graven van koningen, wetenschappers en dichters","wiki":"Westminster_Abbey"},
+  {"name":"Basilica di San Francesco","lat":43.0756,"lon":12.6086,"type":"kerk","period":"1228","description":"Gebouwd boven het graf van Franciscus van Assisi, fresco's van Giotto","wiki":"Basilica_di_San_Francesco"}
 ]

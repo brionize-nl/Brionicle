@@ -1,4 +1,4 @@
-const CACHE_NAME = 'brionicle-v6';
+const CACHE_NAME = 'brionicle-v7';
 
 self.addEventListener('install', () => {
     self.skipWaiting();

@@ -224,6 +224,16 @@ body:not(.old-world) .old-world-only {
     color: #c9b8e0;
 }
 
+.mystery-badge.tempel {
+    background: #5c1a1a;
+    color: #e0b8b8;
+}
+
+.mystery-badge.kerk {
+    background: #3d2e1f;
+    color: #d4c5a9;
+}
+
 .camera-marker {
     width: 12px;
     height: 12px;
