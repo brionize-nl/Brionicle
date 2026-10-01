@@ -1,0 +1,89 @@
+#!/bin/bash
+# Setup script voor Ollama + Caddy op Oracle VPS
+# Gebruik: sudo bash setup.sh
+
+set -e
+
+echo "=== Ollama + Caddy setup ==="
+
+# 1. Ollama installeren (als nog niet aanwezig)
+if ! command -v ollama &> /dev/null; then
+    echo "Ollama installeren..."
+    curl -fsSL https://ollama.com/install.sh | sh
+else
+    echo "Ollama is al geinstalleerd: $(ollama --version)"
+fi
+
+# 2. Caddy installeren (als nog niet aanwezig)
+if ! command -v caddy &> /dev/null; then
+    echo "Caddy installeren..."
+    apt-get update
+    apt-get install -y debian-keyring debian-archive-keyring apt-transport-https curl
+    curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+    curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list
+    apt-get update
+    apt-get install -y caddy
+else
+    echo "Caddy is al geinstalleerd: $(caddy version)"
+fi
+
+# 3. PWA bestanden kopieren
+echo "PWA bestanden kopieren..."
+mkdir -p /opt/ollama-pwa/public
+cp -r public/* /opt/ollama-pwa/public/
+
+# 4. Caddyfile kopieren
+echo "Caddyfile installeren..."
+cp Caddyfile /etc/caddy/Caddyfile
+
+# 5. API key genereren (als nog niet gezet)
+if [ -z "$OLLAMA_API_KEY" ]; then
+    API_KEY=$(openssl rand -hex 32)
+    echo "OLLAMA_API_KEY=$API_KEY" >> /etc/caddy/environment
+    echo ""
+    echo "=== BEWAAR DEZE API KEY ==="
+    echo "$API_KEY"
+    echo "==========================="
+    echo ""
+    echo "De key staat ook in /etc/caddy/environment"
+fi
+
+# 6. Caddy systemd override voor environment
+mkdir -p /etc/systemd/system/caddy.service.d
+cat > /etc/systemd/system/caddy.service.d/override.conf << 'EOF'
+[Service]
+EnvironmentFile=/etc/caddy/environment
+EOF
+
+# 7. Ollama configureren om alleen op localhost te luisteren
+mkdir -p /etc/systemd/system/ollama.service.d
+cat > /etc/systemd/system/ollama.service.d/override.conf << 'EOF'
+[Service]
+Environment="OLLAMA_HOST=127.0.0.1:11434"
+EOF
+
+# 8. Firewall: alleen 80 en 443 open voor Caddy
+echo "Firewall configureren..."
+if command -v ufw &> /dev/null; then
+    ufw allow 80/tcp
+    ufw allow 443/tcp
+    ufw --force enable
+fi
+
+# 9. Services herstarten
+echo "Services herstarten..."
+systemctl daemon-reload
+systemctl enable ollama
+systemctl restart ollama
+systemctl enable caddy
+systemctl restart caddy
+
+echo ""
+echo "=== Setup compleet ==="
+echo "Ollama draait op localhost:11434"
+echo "Caddy proxy op ollama.brionize.nl (HTTPS automatisch)"
+echo ""
+echo "Vergeet niet:"
+echo "1. DNS A-record: ollama.brionize.nl -> $(curl -s ifconfig.me)"
+echo "2. Een model downloaden: ollama pull llama3.2"
+echo "3. Oracle Cloud firewall: poort 80 en 443 openzetten"

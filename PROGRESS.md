@@ -122,6 +122,58 @@ Deze features zijn bewust verwijderd omdat ze niet werkten of niet nodig waren:
 4. `5135da8` — Route-info (van A naar B) in vliegtuigpanel
 5. `d5a0a16` — Aardbevingen en regenradar verwijderd
 
+## Ollama PWA (ollama.brionize.nl)
+
+### Architectuur
+```
+Browser (PWA op ollama.brionize.nl)
+    ↓ (X-API-Key header)
+Caddy reverse proxy (HTTPS, API key validatie)
+    ↓
+Ollama (localhost:11434)
+```
+
+### Bestanden
+```
+ollama/
+  Caddyfile          — Caddy configuratie (reverse proxy + API key + static files)
+  setup.sh           — Installatiescript voor VPS (Ollama + Caddy + firewall)
+  public/
+    index.html       — Complete chat PWA (single page, vanilla JS)
+    manifest.json    — PWA manifest
+    sw.js            — Service worker (cache static, skip /api/)
+    icon-192.svg     — App icoon 192px
+    icon-512.svg     — App icoon 512px
+```
+
+### Beveiliging
+- Ollama luistert alleen op `127.0.0.1:11434` (niet extern bereikbaar)
+- Caddy valideert `X-API-Key` header op alle `/api/*` routes
+- API key wordt gegenereerd bij setup en opgeslagen in `/etc/caddy/environment`
+- PWA vraagt API key bij eerste bezoek, slaat op in localStorage
+- HTTPS automatisch via Caddy (Let's Encrypt)
+- Security headers: X-Content-Type-Options, X-Frame-Options, Referrer-Policy, Permissions-Policy
+- Firewall: alleen poort 80 en 443 open
+
+### PWA features
+- Streaming chat met Ollama modellen
+- Model selectie dropdown (haalt beschikbare modellen op)
+- Markdown rendering (code blocks, tabellen, lijsten, bold/italic)
+- Code kopieer-knop
+- Systeemprompt instelling
+- Temperatuur instelling
+- Chat geschiedenis (localStorage)
+- Installeerbaar als app (manifest + service worker)
+- Donker thema, responsive (mobiel + desktop)
+- Welkomstscherm met voorbeeldprompts
+
+### Setup (op VPS)
+1. DNS A-record: `ollama.brionize.nl` → VPS IP
+2. Oracle Cloud firewall: poort 80 + 443 openzetten
+3. `sudo bash ollama/setup.sh`
+4. `ollama pull llama3.2` (of ander model)
+5. API key uit output kopiëren en in PWA invullen
+
 ## Volgende sessie
 
 - Weer en zontijden zijn niet gereviewd op kwaliteit

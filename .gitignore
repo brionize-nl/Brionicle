@@ -1,3 +1,4 @@
 desktop/config.json
 desktop/node_modules/
 desktop/debug-*.jpg
+ollama/environment
