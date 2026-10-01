@@ -8,7 +8,6 @@ ollama.brionize.nl {
 	respond @api_no_key "Ongeautoriseerd" 401
 
 	handle /api/* {
-		uri strip_prefix /api
 		reverse_proxy localhost:11434 {
 			flush_interval -1
 		}
