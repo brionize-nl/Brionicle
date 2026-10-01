@@ -2,7 +2,8 @@
 # Setup script voor Ollama + Caddy op Oracle VPS
 # Gebruik: sudo bash setup.sh
 
-set -e
+set -euo pipefail
+umask 077
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
@@ -50,9 +51,51 @@ else
     echo ""
 fi
 
-# 5. Caddyfile met API key erin (geen env var — Caddy matcher bug)
+# 5. Keys blijven root-only; Caddy mag alleen de gegenereerde configuratie lezen.
+chown root:root "$KEY_FILE"
+chmod 600 "$KEY_FILE"
+validate_key() {
+    if [[ ! "$1" =~ ^[A-Za-z0-9_.-]+$ ]]; then
+        echo "Ongeldige of lege sleutel in $2" >&2
+        exit 1
+    fi
+}
+validate_key "$API_KEY" "$KEY_FILE"
 echo "Caddyfile installeren..."
-sed "s/__OLLAMA_API_KEY__/$API_KEY/g" "$SCRIPT_DIR/Caddyfile" > /etc/caddy/ollama.caddyfile
+CADDY_TEMP=$(mktemp /etc/caddy/ollama.caddyfile.XXXXXX)
+trap 'rm -f "$CADDY_TEMP"' EXIT
+sed "s|__OLLAMA_API_KEY__|$API_KEY|g" "$SCRIPT_DIR/Caddyfile" > "$CADDY_TEMP"
+for PROVIDER in CLAUDE OPENAI MISTRAL; do
+    PROVIDER_FILE="/etc/caddy/${PROVIDER,,}-api-key"
+    if [ -f "$PROVIDER_FILE" ]; then
+        chown root:root "$PROVIDER_FILE"
+        chmod 600 "$PROVIDER_FILE"
+        PROVIDER_KEY=$(cat "$PROVIDER_FILE")
+        validate_key "$PROVIDER_KEY" "$PROVIDER_FILE"
+        sed -i "s|__${PROVIDER}_API_KEY__|${PROVIDER_KEY}|g" "$CADDY_TEMP"
+        echo "${PROVIDER} API key gevonden en ingesteld"
+    else
+        # Houd het pad gereserveerd: nooit doorsturen naar de Ollama fallback.
+        awk -v provider="${PROVIDER,,}" -v name="$PROVIDER" '
+            $0 == "\thandle /api/" provider "/* {" {
+                print; print "\t\trespond \"" name " is niet ingesteld op de server\" 503"
+                skip=1; next
+            }
+            skip && $0 == "\t}" {print; skip=0; next}
+            !skip {print}
+        ' "$CADDY_TEMP" > "${CADDY_TEMP}.disabled"
+        mv "${CADDY_TEMP}.disabled" "$CADDY_TEMP"
+        echo "${PROVIDER} API key niet gevonden — route uitgeschakeld"
+    fi
+done
+chown root:caddy "$CADDY_TEMP"
+chmod 640 "$CADDY_TEMP"
+# Valideer voor installatie; diagnostiek kan de ingevulde configuratie bevatten.
+if ! caddy validate --config "$CADDY_TEMP" --adapter caddyfile >/dev/null 2>&1; then
+    echo "Caddy configuratie ongeldig; bestaande configuratie behouden" >&2
+    exit 1
+fi
+mv "$CADDY_TEMP" /etc/caddy/ollama.caddyfile
 
 if ! grep -q 'import.*ollama.caddyfile' /etc/caddy/Caddyfile 2>/dev/null; then
     echo 'import /etc/caddy/ollama.caddyfile' >> /etc/caddy/Caddyfile
@@ -105,3 +148,11 @@ echo "=== Setup compleet ==="
 echo "Ollama draait op localhost:11434"
 echo "Caddy proxy op ollama.brionize.nl (HTTPS automatisch)"
 echo "API key staat in $KEY_FILE"
+
+echo ""
+echo "=== Provider keys instellen (optioneel) ==="
+echo "Lees een sleutel verborgen in en schrijf hem zonder terminaluitvoer:"
+echo 'read -rsp "Provider key: " PROVIDER_KEY; echo'
+echo 'printf "%s\n" "$PROVIDER_KEY" | sudo install -m 600 /dev/stdin /etc/caddy/claude-api-key; unset PROVIDER_KEY'
+echo "Gebruik openai-api-key of mistral-api-key voor de andere providers."
+echo "Na het instellen: sudo bash setup.sh"

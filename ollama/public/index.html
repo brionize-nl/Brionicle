@@ -272,7 +272,7 @@ select, button, input, textarea {
   font-size: inherit;
 }
 
-.model-select {
+.provider-select, .model-select {
   background: var(--bg-input);
   color: var(--text);
   border: 1px solid var(--border);
@@ -749,6 +749,10 @@ select, button, input, textarea {
   .sidebar.open { transform: translateX(0); }
   .sidebar.open ~ .sidebar-backdrop { display: block; }
 
+  .header { flex-wrap: wrap; }
+  .header-info { flex-basis: calc(100% - 56px); }
+  .header-controls { width: 100%; flex-wrap: wrap; }
+  .header-controls select { min-width: 0; flex: 1; padding: 6px; }
   .menu-btn { display: flex; }
   .msg { max-width: 95%; }
   .msg-user { max-width: 90%; }
@@ -795,6 +799,12 @@ select, button, input, textarea {
       <select class="preset-select" id="preset-select" title="Preset">
         <option value="">Geen preset</option>
       </select>
+      <select class="provider-select" id="provider-select" aria-label="Provider">
+        <option value="ollama">Ollama (lokaal)</option>
+        <option value="claude">Claude</option>
+        <option value="openai">ChatGPT</option>
+        <option value="mistral">Mistral</option>
+      </select>
       <select class="model-select" id="model-select" title="Model">
         <option value="">Laden...</option>
       </select>
@@ -808,7 +818,7 @@ select, button, input, textarea {
     <div class="welcome" id="welcome">
       <img src="/icon-192.svg" alt="" width="64" height="64" style="opacity:0.8">
       <h2>Waar kan ik je mee helpen?</h2>
-      <p>Privé AI op je eigen server. Geen cloud, geen kosten, geen limieten.</p>
+      <p>Chat met lokale Ollama-modellen of kies Claude, ChatGPT of Mistral.</p>
       <div class="welcome-prompts">
         <button class="welcome-prompt" data-prompt="Schrijf een Python script dat alle duplicate bestanden in een map vindt en verwijdert">
           <span class="wp-icon">&#128187;</span>
@@ -848,8 +858,8 @@ select, button, input, textarea {
   <div class="modal">
     <h3>Instellingen</h3>
     <div class="field">
-      <label for="api-key">API Key</label>
-      <input type="password" id="api-key" placeholder="Plak je API key hier">
+      <label for="api-key">Caddy toegangssleutel</label>
+      <input type="password" id="api-key" placeholder="Plak je Caddy toegangssleutel hier">
     </div>
     <div class="field">
       <label for="system-prompt">Systeemprompt</label>
@@ -901,6 +911,7 @@ const chat = $('#chat');
 const welcome = $('#welcome');
 const promptEl = $('#prompt');
 const sendBtn = $('#btn-send');
+const providerSelect = $('#provider-select');
 const modelSelect = $('#model-select');
 const presetSelect = $('#preset-select');
 const statusDot = $('#status');
@@ -967,45 +978,118 @@ function titleFromMessages(msgs) {
   return text.length < first.content.length ? text + '...' : text;
 }
 
-// ── API ──
+// ── Providers en API ──
+const PROVIDERS = {
+  ollama: {
+    name: 'Ollama', chatPath: '/api/ollama/api/chat', modelsPath: '/api/ollama/api/tags',
+    parseModels: data => (data.models || []).map(m => m.name),
+    buildBody: (model, messages, temperature) => ({model, messages, stream: true, options: {temperature}}),
+    parseStream: 'ollama'
+  },
+  claude: {
+    name: 'Claude', chatPath: '/api/claude/v1/messages',
+    defaultModels: ['claude-sonnet-4-20250514', 'claude-haiku-4-20250514'],
+    buildBody: (model, messages, temperature) => ({
+      model, messages: messages.filter(m => m.role !== 'system'), stream: true,
+      max_tokens: 4096, temperature: Math.min(1, temperature),
+      ...(messages.find(m => m.role === 'system')?.content && {system: messages.find(m => m.role === 'system').content})
+    }), parseStream: 'claude'
+  },
+  openai: {
+    name: 'ChatGPT', chatPath: '/api/openai/v1/chat/completions', modelsPath: '/api/openai/v1/models',
+    parseModels: data => (data.data || []).filter(m => m.id.startsWith('gpt-')).map(m => m.id).sort(),
+    buildBody: (model, messages, temperature) => ({model, messages, stream: true, temperature}), parseStream: 'openai'
+  },
+  mistral: {
+    name: 'Mistral', chatPath: '/api/mistral/v1/chat/completions', modelsPath: '/api/mistral/v1/models',
+    parseModels: data => (data.data || []).map(m => m.id).sort(),
+    buildBody: (model, messages, temperature) => ({model, messages, stream: true, temperature}), parseStream: 'openai'
+  }
+};
+function activeProvider() { return PROVIDERS[providerSelect.value]; }
 async function apiFetch(path, opts = {}) {
   const key = apiKey();
-  if (!key) { openSettings(); throw new Error('Geen API key ingesteld'); }
-  const headers = { 'X-API-Key': key, ...opts.headers };
-  const res = await fetch('/api' + path, { ...opts, headers });
-  if (res.status === 401) { openSettings(); throw new Error('Ongeldige API key'); }
-  if (!res.ok) throw new Error(`API fout: ${res.status}`);
+  if (!key) { openSettings(); throw new Error('Geen Caddy toegangssleutel ingesteld'); }
+  const res = await fetch(path, {...opts, headers: {...opts.headers, 'X-API-Key': key}});
+  if (!res.ok) {
+    let detail = '';
+    try { const data = await res.json(); detail = data.error?.message || (typeof data.error === 'string' ? data.error : ''); } catch {}
+    if (res.status === 401 && !detail) { openSettings(); throw new Error('Ongeldige Caddy toegangssleutel'); }
+    if (res.status === 503) throw new Error(detail || 'Provider niet ingesteld op de server');
+    throw new Error(detail || `API fout: ${res.status}`);
+  }
   return res;
 }
-
-// ── Models ──
+let modelsRequest = 0;
 async function loadModels() {
+  const request = ++modelsRequest;
+  const providerId = providerSelect.value;
+  const provider = activeProvider();
+  modelSelect.disabled = true;
+  modelSelect.innerHTML = '<option value="">Laden...</option>';
+  statusDot.classList.remove('ok');
   try {
-    const res = await apiFetch('/tags');
-    const data = await res.json();
-    const models = data.models || [];
+    const models = provider.modelsPath ? provider.parseModels(await (await apiFetch(provider.modelsPath)).json()) : provider.defaultModels;
+    if (request !== modelsRequest) return;
     modelSelect.innerHTML = '';
-    if (!models.length) {
-      modelSelect.innerHTML = '<option value="">Geen modellen</option>';
-      return;
-    }
-    const saved = getSetting('model', '');
-    models.forEach(m => {
+    if (!models.length) throw new Error('Geen modellen beschikbaar');
+    const saved = getSetting('model_' + providerId, providerId === 'ollama' ? getSetting('model', '') : '');
+    models.forEach(model => {
       const opt = document.createElement('option');
-      opt.value = m.name;
-      opt.textContent = m.name.replace(':latest', '');
-      if (m.name === saved) opt.selected = true;
+      opt.value = model; opt.textContent = model.replace(':latest', '');
       modelSelect.appendChild(opt);
     });
-    if (!saved && models.length) setSetting('model', models[0].name);
+    modelSelect.value = models.includes(saved) ? saved : models[0];
+    setSetting('model_' + providerId, modelSelect.value);
+    modelSelect.disabled = false;
     statusDot.classList.add('ok');
-  } catch {
-    modelSelect.innerHTML = '<option value="">Fout</option>';
-    statusDot.classList.remove('ok');
+    statusDot.title = provider.name + ': modellen geladen';
+  } catch (error) {
+    if (request !== modelsRequest) return;
+    modelSelect.innerHTML = '<option value="">Niet beschikbaar</option>';
+    statusDot.title = error.message;
+    appendError(provider.name + ': ' + error.message);
   }
 }
+providerSelect.value = getSetting('provider', 'ollama');
+if (!activeProvider()) providerSelect.value = 'ollama';
+providerSelect.addEventListener('change', () => {
+  setSetting('provider', providerSelect.value);
+  loadModels();
+});
+modelSelect.addEventListener('change', () => setSetting('model_' + providerSelect.value, modelSelect.value));
 
-modelSelect.addEventListener('change', () => setSetting('model', modelSelect.value));
+// Verwerk volledige regels, inclusief gesplitste UTF-8 en de laatste regel zonder newline.
+async function readChatStream(body, format, onChunk) {
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '', dataLines = [], stopped = false;
+  function dispatch(raw) {
+    if (!raw || raw === '[DONE]') { if (raw) stopped = true; return; }
+    const chunk = JSON.parse(raw);
+    if (chunk.error || chunk.type === 'error') throw new Error(chunk.error?.message || chunk.error || 'Providerfout');
+    const text = format === 'ollama' ? chunk.message?.content : format === 'claude' ? (chunk.delta?.type === 'text_delta' ? chunk.delta.text : '') : chunk.choices?.[0]?.delta?.content;
+    onChunk(text || '', chunk);
+    if (chunk.done || chunk.type === 'message_stop') stopped = true;
+  }
+  function line(value) {
+    value = value.replace(/\r$/, '');
+    if (format === 'ollama') { if (value.trim()) dispatch(value); }
+    else if (!value) { dispatch(dataLines.join('\n')); dataLines = []; }
+    else if (value.startsWith('data:')) dataLines.push(value.slice(5).replace(/^ /, ''));
+  }
+  try {
+    while (!stopped) {
+      const {done, value} = await reader.read();
+      buffer += done ? decoder.decode() : decoder.decode(value, {stream: true});
+      let newline;
+      while (!stopped && (newline = buffer.indexOf('\n')) !== -1) {
+        line(buffer.slice(0, newline)); buffer = buffer.slice(newline + 1);
+      }
+      if (done) { if (!stopped && buffer) line(buffer); if (!stopped && dataLines.length) dispatch(dataLines.join('\n')); break; }
+    }
+  } finally { try { await reader.cancel(); } finally { reader.releaseLock(); } }
+}
 
 // ── Presets ──
 function initPresets() {
@@ -1065,7 +1149,7 @@ function renderConvList(filter = '') {
     item.dataset.id = conv.id;
     item.innerHTML = `
       <svg class="conv-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-      <span class="conv-title">${escapeHtml(conv.title)}</span>
+      <span class="conv-title">${escapeHtml(conv.title)}<small style="display:block;font-size:10px;opacity:0.8">${escapeHtml(PROVIDERS[conv.provider || 'ollama']?.name || 'Ollama')} · ${escapeHtml(conv.model || 'onbekend')}</small></span>
       <div class="conv-actions">
         <button class="conv-action ren" title="Hernoemen"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.83 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg></button>
         <button class="conv-action del" title="Verwijderen"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button>
@@ -1111,7 +1195,7 @@ function switchConv(id) {
   chat.querySelectorAll('.msg').forEach(m => m.remove());
   welcome.style.display = conv.messages.length ? 'none' : '';
 
-  conv.messages.forEach(m => appendMsg(m.role, m.content, false));
+  conv.messages.forEach(m => appendMsg(m.role, m.content, false, {provider: m.provider || conv.provider || 'ollama', model: m.model || conv.model || ''}));
   chat.scrollTop = chat.scrollHeight;
   renderConvList($('#conv-search').value);
 }
@@ -1121,7 +1205,7 @@ function newConv() {
   const id = genId();
   conversations[id] = {
     id, title: 'Nieuw gesprek', messages: [],
-    created: Date.now(), updated: Date.now(), model: modelSelect.value
+    created: Date.now(), updated: Date.now(), provider: providerSelect.value, model: modelSelect.value
   };
   saveConversations();
   switchConv(id);
@@ -1239,14 +1323,14 @@ window.copyCode = function(btn) {
 };
 
 // ── Messages ──
-function appendMsg(role, content, scroll = true) {
+function appendMsg(role, content, scroll = true, meta = {}) {
   const div = document.createElement('div');
   div.className = `msg msg-${role === 'user' ? 'user' : 'ai'}`;
 
   if (role === 'user') {
     div.textContent = content;
   } else {
-    const model = getSetting('model', '').replace(':latest', '');
+    const model = `${PROVIDERS[meta.provider || providerSelect.value]?.name || 'Ollama'} · ${(meta.model || modelSelect.value).replace(':latest', '')}`;
     const time = new Date().toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
     div.innerHTML = `<div class="msg-head"><span class="model-tag">${escapeHtml(model)}</span><span class="msg-time">${time}</span></div>` + renderMd(content);
   }
@@ -1267,6 +1351,10 @@ function appendError(text) {
 // ── Send ──
 async function send(text) {
   if (!text.trim() || generating) return;
+  if (modelSelect.disabled || !modelSelect.value) { appendError('Kies eerst een beschikbaar model'); return; }
+  const providerId = providerSelect.value;
+  const provider = activeProvider();
+  const selectedModel = modelSelect.value;
   text = text.trim();
 
   if (!activeConvId) newConv();
@@ -1284,7 +1372,9 @@ async function send(text) {
   }
 
   conv.updated = Date.now();
-  conv.model = modelSelect.value;
+  conv.model = selectedModel;
+  conv.provider = providerId;
+  renderConvList($('#conv-search').value);
   saveConversations();
 
   promptEl.value = '';
@@ -1294,7 +1384,7 @@ async function send(text) {
 
   const aiDiv = document.createElement('div');
   aiDiv.className = 'msg msg-ai';
-  const model = getSetting('model', '').replace(':latest', '');
+  const model = `${provider.name} · ${selectedModel.replace(':latest', '')}`;
   const time = new Date().toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
   aiDiv.innerHTML = `<div class="msg-head"><span class="model-tag">${escapeHtml(model)}</span><span class="msg-time">${time}</span></div><div class="typing"><span></span><span></span><span></span></div>`;
   chat.appendChild(aiDiv);
@@ -1304,54 +1394,23 @@ async function send(text) {
   abortCtrl = new AbortController();
 
   try {
-    const body = {
-      model: modelSelect.value,
-      messages: buildMessages(conv),
-      stream: true
-    };
-
-    const temp = getActiveTemperature();
-    if (!isNaN(temp)) body.options = { temperature: temp };
-
-    const res = await apiFetch('/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-      signal: abortCtrl.signal
+    const body = provider.buildBody(selectedModel, buildMessages(conv), getActiveTemperature());
+    const res = await apiFetch(provider.chatPath, {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(body), signal: abortCtrl.signal
     });
-
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = '';
-    let tokenCount = 0;
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop();
-
-      for (const line of lines) {
-        if (!line.trim()) continue;
-        try {
-          const chunk = JSON.parse(line);
-          if (chunk.message?.content) {
-            fullResponse += chunk.message.content;
-            tokenCount++;
-            if (tokenCount % 3 === 0 || chunk.done) {
-              aiDiv.innerHTML = `<div class="msg-head"><span class="model-tag">${escapeHtml(model)}</span><span class="msg-time">${time}</span></div>` + renderMd(fullResponse);
-              chat.scrollTop = chat.scrollHeight;
-            }
-          }
-          if (chunk.done && chunk.eval_count) {
-            const tps = (chunk.eval_count / (chunk.eval_duration / 1e9)).toFixed(1);
-            $('#input-hint').textContent = `${chunk.eval_count} tokens · ${tps} t/s`;
-            setTimeout(() => { $('#input-hint').textContent = ''; }, 5000);
-          }
-        } catch {}
+    if (!res.body) throw new Error('Geen antwoordstream ontvangen');
+    await readChatStream(res.body, provider.parseStream, (text, chunk) => {
+      fullResponse += text;
+      if (text) {
+        aiDiv.innerHTML = `<div class="msg-head"><span class="model-tag">${escapeHtml(model)}</span><span class="msg-time">${time}</span></div>` + renderMd(fullResponse);
+        if (conversations[activeConvId] === conv) chat.scrollTop = chat.scrollHeight;
       }
-    }
+      if (chunk.done && chunk.eval_count && chunk.eval_duration) {
+        $('#input-hint').textContent = `${chunk.eval_count} tokens · ${(chunk.eval_count / (chunk.eval_duration / 1e9)).toFixed(1)} t/s`;
+        setTimeout(() => { $('#input-hint').textContent = ''; }, 5000);
+      }
+    });
 
     // Final render
     if (fullResponse) {
@@ -1362,7 +1421,7 @@ async function send(text) {
       aiDiv.remove();
       appendError('Geen antwoord ontvangen');
     } else {
-      conv.messages.push({ role: 'assistant', content: fullResponse });
+      conv.messages.push({ role: 'assistant', content: fullResponse, provider: providerId, model: selectedModel });
       conv.updated = Date.now();
       saveConversations();
     }
@@ -1383,7 +1442,7 @@ function buildMessages(conv) {
   const sys = getActiveSystemPrompt();
   const msgs = [];
   if (sys) msgs.push({ role: 'system', content: sys });
-  msgs.push(...conv.messages);
+  msgs.push(...conv.messages.map(({role, content}) => ({role, content})));
   return msgs;
 }
 
@@ -1431,7 +1490,7 @@ $('#btn-export').addEventListener('click', () => {
   const conv = conversations[activeConvId];
   if (!conv.messages.length) { alert('Geen berichten om te exporteren'); return; }
 
-  let md = `# ${conv.title}\n\nGeexporteerd: ${new Date().toLocaleString('nl-NL')}\nModel: ${conv.model || 'onbekend'}\n\n---\n\n`;
+  let md = `# ${conv.title}\n\nGeexporteerd: ${new Date().toLocaleString('nl-NL')}\nProvider: ${PROVIDERS[conv.provider || 'ollama']?.name || 'Ollama'}\nModel: ${conv.model || 'onbekend'}\n\n---\n\n`;
   conv.messages.forEach(m => {
     if (m.role === 'user') {
       md += `## Gebruiker\n\n${m.content}\n\n`;
@@ -1507,6 +1566,7 @@ document.addEventListener('keydown', e => {
 // ── Init ──
 loadConversations();
 initPresets();
+updateSendButton();
 
 if (Object.keys(conversations).length) {
   const saved = getSetting('active', '');
