@@ -220,6 +220,75 @@ def get_audio_duration(path):
         return 5.0
 
 
+# --- Subtitles ---
+
+def generate_srt(text, duration, output_path):
+    import re
+    sentences = re.split(r'(?<=[.!?])\s+', text.strip())
+    sentences = [s.strip() for s in sentences if s.strip()]
+    if not sentences:
+        return None
+
+    total_words = sum(len(s.split()) for s in sentences)
+    if total_words == 0:
+        return None
+
+    def fmt_time(t):
+        h = int(t // 3600)
+        m = int((t % 3600) // 60)
+        s = int(t % 60)
+        ms = int((t % 1) * 1000)
+        return f"{h:02d}:{m:02d}:{s:02d},{ms:03d}"
+
+    current = 0.0
+    usable = duration * 0.95
+
+    with open(output_path, "w") as f:
+        for i, sentence in enumerate(sentences):
+            wc = len(sentence.split())
+            dur = (wc / total_words) * usable
+            start = current
+            end = current + dur
+
+            f.write(f"{i+1}\n{fmt_time(start)} --> {fmt_time(end)}\n")
+
+            words = sentence.split()
+            line, lines = [], []
+            for w in words:
+                line.append(w)
+                if len(" ".join(line)) > 42:
+                    lines.append(" ".join(line))
+                    line = []
+            if line:
+                lines.append(" ".join(line))
+
+            f.write("\n".join(lines[:2]) + "\n\n")
+            current = end + 0.15
+
+    return str(output_path)
+
+
+def burn_subtitles(video_path, srt_path, output_path):
+    srt_escaped = str(srt_path).replace("\\", "\\\\").replace(":", "\\:").replace("'", "\\'")
+    style = (
+        "FontName=DejaVu Sans,FontSize=22,PrimaryColour=&H00FFFFFF,"
+        "OutlineColour=&H00000000,BackColour=&H80000000,"
+        "Bold=0,Outline=2,Shadow=1,MarginV=45"
+    )
+    try:
+        run_ff([
+            "ffmpeg", "-y", "-i", str(video_path),
+            "-vf", f"subtitles={srt_escaped}:force_style='{style}'",
+            "-c:v", "libx264", "-crf", "22", "-preset", "medium",
+            "-c:a", "copy", str(output_path)
+        ], "burn subtitles")
+        return True
+    except Exception as e:
+        log(f"Subtitle burn failed: {e}, using video without subs", 2)
+        shutil.copy2(str(video_path), str(output_path))
+        return False
+
+
 # --- FFmpeg Video Components ---
 
 def create_colored_card(output_path, color=None):
@@ -462,7 +531,7 @@ def crossfade_clips(clip_a, clip_b, output_path, fade_duration=1.0):
 
 # --- Main Pipeline ---
 
-def generate_documentary(locations, output_name=None, lang="en"):
+def generate_documentary(locations, output_name=None, lang="en", subs=True):
     ensure_dirs()
     clips_dir = CACHE_DIR / "clips"
 
@@ -523,20 +592,33 @@ def generate_documentary(locations, output_name=None, lang="en"):
         log(f"  {dur:.1f}s audio", 1)
 
         # Video clip
+        raw_clip = clips_dir / f"{idx}_location_raw.mp4"
+        clip_path = clips_dir / f"{idx}_location.mp4"
+
         if len(images) >= 3:
             log(f"Multi-image clip ({len(images)} images)...", 1)
-            clip_path = clips_dir / f"{idx}_location.mp4"
             try:
-                create_multi_image_clip(images, str(audio_path), str(clip_path), loc["name"])
+                create_multi_image_clip(images, str(audio_path), str(raw_clip), loc["name"])
             except Exception as e:
                 log(f"Multi-image failed ({e}), single image fallback", 1)
                 zoom = ["in", "out", "pan"][i % 3]
-                create_ken_burns_clip(images[0], str(audio_path), str(clip_path), loc["name"], zoom)
+                create_ken_burns_clip(images[0], str(audio_path), str(raw_clip), loc["name"], zoom)
         else:
             log("Ken Burns clip...", 1)
-            clip_path = clips_dir / f"{idx}_location.mp4"
             zoom = ["in", "out", "pan"][i % 3]
-            create_ken_burns_clip(images[0], str(audio_path), str(clip_path), loc["name"], zoom)
+            create_ken_burns_clip(images[0], str(audio_path), str(raw_clip), loc["name"], zoom)
+
+        # Subtitles
+        if subs:
+            log("Burning subtitles...", 1)
+            srt_path = CACHE_DIR / "audio" / f"{idx}_subs.srt"
+            srt_file = generate_srt(narration, dur, str(srt_path))
+            if srt_file:
+                burn_subtitles(str(raw_clip), srt_file, str(clip_path))
+            else:
+                shutil.copy2(str(raw_clip), str(clip_path))
+        else:
+            shutil.copy2(str(raw_clip), str(clip_path))
 
         all_clips.append(str(clip_path))
 
@@ -638,7 +720,7 @@ def run_test():
             "description": "Underground ossuary holding the remains of six million people"
         }
     ]
-    return generate_documentary(test_locations, "test_docu_v2.mp4", lang="en")
+    return generate_documentary(test_locations, "test_docu_v2.mp4", lang="en", subs=True)
 
 
 def main():
@@ -647,6 +729,7 @@ def main():
     parser.add_argument("--test", action="store_true", help="Test mode with 3 locations")
     parser.add_argument("--output", "-o", help="Output filename")
     parser.add_argument("--lang", default="en", choices=["en", "nl"], help="Narration language")
+    parser.add_argument("--no-subs", action="store_true", help="Disable subtitles")
     args = parser.parse_args()
 
     print(f"\n{'='*50}")
@@ -672,7 +755,7 @@ def main():
         sys.exit(1)
 
     log(f"{len(locations)} locations loaded")
-    generate_documentary(locations, args.output, args.lang)
+    generate_documentary(locations, args.output, args.lang, subs=not args.no_subs)
 
 
 if __name__ == "__main__":
