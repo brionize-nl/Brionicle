@@ -210,6 +210,66 @@ body { display: flex; overflow: hidden; }
 
 .sidebar-footer button:hover { border-color: var(--accent); color: var(--accent); }
 
+/* ── Sidebar sections ── */
+.sidebar-section {
+  border-top: 1px solid var(--border);
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.15s;
+}
+
+.section-title:hover { color: var(--text-dim); }
+
+.section-title svg {
+  transition: transform 0.2s;
+}
+
+.section-title.collapsed svg {
+  transform: rotate(-90deg);
+}
+
+.section-links {
+  padding: 0 8px 6px;
+}
+
+.section-links.hidden { display: none; }
+
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--text-dim);
+  text-decoration: none;
+  transition: all 0.1s;
+}
+
+.sidebar-link:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.link-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
 /* ── Main area ── */
 .main {
   flex: 1;
@@ -778,6 +838,52 @@ select, button, input, textarea {
     <input type="text" id="conv-search" placeholder="Zoeken...">
   </div>
   <div class="conv-list" id="conv-list"></div>
+
+  <div class="sidebar-section">
+    <div class="section-title" id="toggle-tools">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+      AI Tools
+    </div>
+    <div class="section-links" id="tools-links">
+      <a href="https://claude.ai/code" target="_blank" rel="noopener" class="sidebar-link link-claude">
+        <span class="link-dot" style="background:#f97316"></span>Claude Code
+      </a>
+      <a href="https://chatgpt.com" target="_blank" rel="noopener" class="sidebar-link link-chatgpt">
+        <span class="link-dot" style="background:#10b981"></span>ChatGPT
+      </a>
+      <a href="https://chat.mistral.ai" target="_blank" rel="noopener" class="sidebar-link link-mistral">
+        <span class="link-dot" style="background:#3b82f6"></span>Mistral
+      </a>
+    </div>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="section-title" id="toggle-projects">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+      Projecten
+    </div>
+    <div class="section-links" id="projects-links">
+      <a href="https://github.com/brionize-nl/Brionicle" target="_blank" rel="noopener" class="sidebar-link">
+        <span class="link-dot" style="background:#8b5cf6"></span>Brionicle
+      </a>
+      <a href="https://github.com/brionize-nl" target="_blank" rel="noopener" class="sidebar-link">
+        <span class="link-dot" style="background:#8b5cf6"></span>GitHub profiel
+      </a>
+    </div>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="section-title" id="toggle-infra">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+      Infrastructuur
+    </div>
+    <div class="section-links" id="infra-links">
+      <a href="https://ollama.brionize.nl" class="sidebar-link">
+        <span class="link-dot" style="background:#6366f1"></span>Ollama PWA
+      </a>
+    </div>
+  </div>
+
   <div class="sidebar-footer">
     <button id="btn-export" title="Exporteer gesprek">Exporteer</button>
     <button id="btn-settings" title="Instellingen">Instellingen</button>
@@ -1584,6 +1690,19 @@ if (apiKey()) {
 } else {
   openSettings();
 }
+
+// ── Collapsible sidebar sections ──
+['tools', 'projects', 'infra'].forEach(section => {
+  const toggle = $('#toggle-' + section);
+  const links = $('#' + section + '-links');
+  const saved = getSetting('section_' + section, 'open');
+  if (saved === 'closed') { toggle.classList.add('collapsed'); links.classList.add('hidden'); }
+  toggle.addEventListener('click', () => {
+    const closed = toggle.classList.toggle('collapsed');
+    links.classList.toggle('hidden', closed);
+    setSetting('section_' + section, closed ? 'closed' : 'open');
+  });
+});
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js');
