@@ -61,11 +61,12 @@ else
     echo "Import regel bestaat al in /etc/caddy/Caddyfile"
 fi
 
-# 6. Ollama configureren om alleen op localhost te luisteren
+# 6. Ollama configureren: alleen localhost + alle origins toestaan (Caddy doet de auth)
 mkdir -p /etc/systemd/system/ollama.service.d
 cat > /etc/systemd/system/ollama.service.d/override.conf << 'EOF'
 [Service]
 Environment="OLLAMA_HOST=127.0.0.1:11434"
+Environment="OLLAMA_ORIGINS=*"
 EOF
 
 # 7. Firewall: alleen 80 en 443 open voor Caddy
