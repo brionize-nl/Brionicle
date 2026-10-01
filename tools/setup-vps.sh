@@ -2,17 +2,27 @@
 # Brionicle Documentary Generator — VPS Setup (Oracle ARM Ampere)
 set -e
 
+VENV="$HOME/docu-env"
+
 echo "=== Brionicle Docu-Generator Setup ==="
 echo ""
 
 # 1. System packages
-echo ">> FFmpeg installeren..."
+echo ">> Systeempakketten installeren..."
 sudo apt-get update -qq
-sudo apt-get install -y -qq ffmpeg espeak-ng python3-pip
+sudo apt-get install -y -qq ffmpeg espeak-ng python3-venv
 
-# 2. Python dependencies
+# 2. Python venv + dependencies
+echo ">> Python venv aanmaken..."
+if [ ! -d "$VENV" ]; then
+    python3 -m venv "$VENV"
+    echo "   Venv aangemaakt: $VENV"
+else
+    echo "   Venv bestaat al: $VENV"
+fi
 echo ">> Python packages installeren..."
-pip3 install --user piper-tts moviepy
+"$VENV/bin/pip" install --upgrade pip
+"$VENV/bin/pip" install piper-tts moviepy
 
 # 3. Piper Dutch voice model
 echo ">> Nederlands stemmodel downloaden..."
@@ -23,7 +33,7 @@ if [ ! -f "$VOICE_DIR/nl_NL-mls-medium.onnx" ]; then
         -o "$VOICE_DIR/nl_NL-mls-medium.onnx"
     curl -L "https://huggingface.co/rhasspy/piper-voices/resolve/main/nl/nl_NL/mls/medium/nl_NL-mls-medium.onnx.json" \
         -o "$VOICE_DIR/nl_NL-mls-medium.onnx.json"
-    echo "   Stemmodel gedownload"
+    echo "   Stemmodel gedownload (~200MB)"
 else
     echo "   Stemmodel al aanwezig"
 fi
@@ -48,7 +58,7 @@ echo ""
 echo "=== Setup compleet ==="
 echo ""
 echo "Test het:"
-echo "  python3 ~/Brionicle/tools/docu-generator.py --test"
+echo "  source $VENV/bin/activate && python3 ~/Brionicle/tools/docu-generator.py --test"
 echo ""
 echo "Genereer een documentaire:"
-echo "  python3 ~/Brionicle/tools/docu-generator.py playlist.json"
+echo "  source $VENV/bin/activate && python3 ~/Brionicle/tools/docu-generator.py playlist.json"
