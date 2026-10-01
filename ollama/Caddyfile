@@ -1,12 +1,16 @@
 ollama.brionize.nl {
-	route /api/* {
-		@no_key not header X-API-Key {$OLLAMA_API_KEY}
-		respond @no_key "Ongeautoriseerd" 401
+	@api_no_key {
+		path /api/*
+		not {
+			header X-API-Key {$OLLAMA_API_KEY}
+		}
+	}
+	respond @api_no_key "Ongeautoriseerd" 401
 
+	handle /api/* {
 		uri strip_prefix /api
 		reverse_proxy localhost:11434 {
 			flush_interval -1
-			header_up Host localhost:11434
 		}
 	}
 
