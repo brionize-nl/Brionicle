@@ -34,43 +34,41 @@ echo "PWA bestanden kopieren..."
 mkdir -p /opt/ollama-pwa/public
 cp -r "$SCRIPT_DIR/public/"* /opt/ollama-pwa/public/
 
-# 4. Caddyfile toevoegen (niet overschrijven — er draait al Caddy)
+# 4. API key genereren of bestaande gebruiken
+KEY_FILE="/etc/caddy/ollama-api-key"
+if [ -f "$KEY_FILE" ]; then
+    API_KEY=$(cat "$KEY_FILE")
+    echo "Bestaande API key gevonden"
+else
+    API_KEY=$(openssl rand -hex 32)
+    echo "$API_KEY" > "$KEY_FILE"
+    chmod 600 "$KEY_FILE"
+    echo ""
+    echo "=== BEWAAR DEZE API KEY ==="
+    echo "$API_KEY"
+    echo "==========================="
+    echo ""
+fi
+
+# 5. Caddyfile met API key erin (geen env var — Caddy matcher bug)
 echo "Caddyfile installeren..."
-cp "$SCRIPT_DIR/Caddyfile" /etc/caddy/ollama.caddyfile
-if ! grep -q 'import ollama.caddyfile' /etc/caddy/Caddyfile 2>/dev/null; then
+sed "s/__OLLAMA_API_KEY__/$API_KEY/g" "$SCRIPT_DIR/Caddyfile" > /etc/caddy/ollama.caddyfile
+
+if ! grep -q 'import.*ollama.caddyfile' /etc/caddy/Caddyfile 2>/dev/null; then
     echo 'import /etc/caddy/ollama.caddyfile' >> /etc/caddy/Caddyfile
     echo "Import regel toegevoegd aan /etc/caddy/Caddyfile"
 else
     echo "Import regel bestaat al in /etc/caddy/Caddyfile"
 fi
 
-# 5. API key genereren (als nog niet gezet)
-if [ -z "$OLLAMA_API_KEY" ]; then
-    API_KEY=$(openssl rand -hex 32)
-    echo "OLLAMA_API_KEY=$API_KEY" >> /etc/caddy/environment
-    echo ""
-    echo "=== BEWAAR DEZE API KEY ==="
-    echo "$API_KEY"
-    echo "==========================="
-    echo ""
-    echo "De key staat ook in /etc/caddy/environment"
-fi
-
-# 6. Caddy systemd override voor environment
-mkdir -p /etc/systemd/system/caddy.service.d
-cat > /etc/systemd/system/caddy.service.d/override.conf << 'EOF'
-[Service]
-EnvironmentFile=/etc/caddy/environment
-EOF
-
-# 7. Ollama configureren om alleen op localhost te luisteren
+# 6. Ollama configureren om alleen op localhost te luisteren
 mkdir -p /etc/systemd/system/ollama.service.d
 cat > /etc/systemd/system/ollama.service.d/override.conf << 'EOF'
 [Service]
 Environment="OLLAMA_HOST=127.0.0.1:11434"
 EOF
 
-# 8. Firewall: alleen 80 en 443 open voor Caddy
+# 7. Firewall: alleen 80 en 443 open voor Caddy
 echo "Firewall configureren..."
 if command -v ufw &> /dev/null; then
     ufw allow 80/tcp
@@ -78,7 +76,7 @@ if command -v ufw &> /dev/null; then
     ufw --force enable
 fi
 
-# 9. Services herstarten
+# 8. Services herstarten
 echo "Services herstarten..."
 systemctl daemon-reload
 systemctl enable ollama
@@ -90,8 +88,4 @@ echo ""
 echo "=== Setup compleet ==="
 echo "Ollama draait op localhost:11434"
 echo "Caddy proxy op ollama.brionize.nl (HTTPS automatisch)"
-echo ""
-echo "Vergeet niet:"
-echo "1. DNS A-record: ollama.brionize.nl -> $(curl -s ifconfig.me)"
-echo "2. Een model downloaden: ollama pull llama3.2"
-echo "3. Oracle Cloud firewall: poort 80 en 443 openzetten"
+echo "API key staat in $KEY_FILE"

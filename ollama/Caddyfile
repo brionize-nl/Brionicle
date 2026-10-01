@@ -2,7 +2,7 @@ ollama.brionize.nl {
 	@api_no_key {
 		path /api/*
 		not {
-			header X-API-Key {$OLLAMA_API_KEY}
+			header X-API-Key __OLLAMA_API_KEY__
 		}
 	}
 	respond @api_no_key "Ongeautoriseerd" 401
