@@ -4,6 +4,8 @@
 
 set -e
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
 echo "=== Ollama + Caddy setup ==="
 
 # 1. Ollama installeren (als nog niet aanwezig)
@@ -30,11 +32,17 @@ fi
 # 3. PWA bestanden kopieren
 echo "PWA bestanden kopieren..."
 mkdir -p /opt/ollama-pwa/public
-cp -r public/* /opt/ollama-pwa/public/
+cp -r "$SCRIPT_DIR/public/"* /opt/ollama-pwa/public/
 
-# 4. Caddyfile kopieren
+# 4. Caddyfile toevoegen (niet overschrijven — er draait al Caddy)
 echo "Caddyfile installeren..."
-cp Caddyfile /etc/caddy/Caddyfile
+cp "$SCRIPT_DIR/Caddyfile" /etc/caddy/ollama.caddyfile
+if ! grep -q 'import ollama.caddyfile' /etc/caddy/Caddyfile 2>/dev/null; then
+    echo 'import /etc/caddy/ollama.caddyfile' >> /etc/caddy/Caddyfile
+    echo "Import regel toegevoegd aan /etc/caddy/Caddyfile"
+else
+    echo "Import regel bestaat al in /etc/caddy/Caddyfile"
+fi
 
 # 5. API key genereren (als nog niet gezet)
 if [ -z "$OLLAMA_API_KEY" ]; then
