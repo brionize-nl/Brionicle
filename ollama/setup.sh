@@ -86,6 +86,21 @@ systemctl enable caddy
 systemctl restart caddy
 
 echo ""
+echo "=== Diagnose ==="
+sleep 2
+echo -n "Ollama lokaal: "
+OLLAMA_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:11434/api/tags 2>/dev/null)
+echo "$OLLAMA_STATUS"
+if [ "$OLLAMA_STATUS" != "200" ]; then
+    echo "WAARSCHUWING: Ollama reageert niet op localhost:11434"
+    echo "Controleer: sudo systemctl status ollama"
+fi
+
+echo -n "Caddy proxy:   "
+CADDY_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -H "X-API-Key: $API_KEY" https://ollama.brionize.nl/api/tags 2>/dev/null)
+echo "$CADDY_STATUS"
+
+echo ""
 echo "=== Setup compleet ==="
 echo "Ollama draait op localhost:11434"
 echo "Caddy proxy op ollama.brionize.nl (HTTPS automatisch)"

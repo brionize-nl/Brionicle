@@ -10,6 +10,8 @@ ollama.brionize.nl {
 	handle /api/* {
 		reverse_proxy localhost:11434 {
 			flush_interval -1
+			header_up Host localhost:11434
+			header_up Origin http://localhost:11434
 		}
 	}
 
