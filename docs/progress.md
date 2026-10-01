@@ -1,15 +1,15 @@
 # Progress — Brionicle
 
-Laatst bijgewerkt: 2026-09-28
+Laatst bijgewerkt: 2026-10-01
 
 ---
 
-## Fase 0: Sparren en plannen — AFGEROND
+## Track A: Wereldkaart
 
-Alle onderdelen afgerond: idee, bronnen, architectuur, CORS, lagen, YouTube, pins, roadtrip, hosting, golden hour, aurora, UFO, telescopen, mobiel/PWA, documentatie.
+### Fase 0: Sparren en plannen — AFGEROND
+Alle onderdelen afgerond.
 
-## Fase 1: Skelet — GROTENDEELS AFGEROND
-
+### Fase 1: Skelet — GROTENDEELS AFGEROND
 | Stap | Status |
 |------|--------|
 | PWA basis (index.html, manifest, service worker) | Afgerond |
@@ -17,135 +17,121 @@ Alle onderdelen afgerond: idee, bronnen, architectuur, CORS, lagen, YouTube, pin
 | 1 camerabron integreren (RWS API + fallback) | Afgerond |
 | Open-Meteo weer bij klik | Afgerond |
 | Golden hour / zonsopgang-ondergang | Afgerond |
-| Basis pin UI (klik → info paneel) | Afgerond |
+| Basis pin UI (klik -> info paneel) | Afgerond |
 | Lagen toggle UI | Afgerond |
 | PWA iconen | Afgerond |
-| Deploy naar Cloudflare Pages | Wacht op gebruiker |
-| Testen op desktop + mobiel | Wacht op deploy |
+| Deploy naar Cloudflare Pages | Afgerond |
+| Testen op desktop + mobiel | Lopend |
 
-## Fase 2: Camera bronnen uitbreiden — NIET GESTART
-
+### Fase 2: Camera bronnen uitbreiden — DEELS
 | Stap | Status |
 |------|--------|
-| Meer RWS camera's (via API) | Werkt via API, fallback 15 camera's |
-| Extra bronnen (Windy, webcam-autoroute) | Nog niet gestart |
-| Camera health check mechanisme | Nog niet gestart |
+| RWS camera's via API | Werkt |
+| Extra bronnen (Windy, webcam-autoroute) | Niet gestart |
+| Camera health check | Niet gestart |
 
-## Fase 3: Info laag — AFGEROND
+### Fase 3-13: Info, proxy, golden hour, radio, aardbevingen, ISS, aurora, events, monumenten, UFO, telescopen — AFGEROND
+Alle fases afgerond. Sommige features later verwijderd (ISS, UFO, aardbevingen, radio, aurora, pins, roadtrip) - zie PROGRESS.md root.
 
+### Fase 14: Roadtrip — VERWIJDERD
+### Fase 15: 3D globe — NIET GESTART
+
+### Actieve features (na cleanup)
+1. Verkeerscamera's (RWS + timelapse + live)
+2. Vliegtuigradar (ADS-B + routes + volgen)
+3. Weer bij klik (Open-Meteo + zontijden)
+
+---
+
+## Track B: AI Toolkit (VPS)
+
+### Fase 1: VPS Setup — AFGEROND (2026-10-01)
 | Stap | Status |
 |------|--------|
-| Wikipedia API integratie (geosearch + extract + thumbnail) | Afgerond |
-| Info bij elke locatieklik | Afgerond |
+| Ollama installatie + Llama 3.1 8B | Afgerond |
+| DeepSeek-R1 8B downloaden | Afgerond |
+| Piper TTS (EN + NL stemmen) | Afgerond |
+| Python venv (~/docu-env) | Afgerond |
+| duckduckgo-search installatie | Afgerond |
+| trafilatura installatie | Afgerond |
+| yt-dlp installatie | Afgerond |
+| FFmpeg (system) | Afgerond |
 
-## Fase 4: Cloudflare Worker proxy — CODE KLAAR
-
+### Fase 2: VPS Cleanup — AFGEROND (2026-10-01)
 | Stap | Status |
 |------|--------|
-| Worker script schrijven (worker/proxy.js) | Afgerond |
-| Wrangler config (worker/wrangler.toml) | Afgerond |
-| Deployen naar Cloudflare | Wacht op gebruiker |
+| n8n backup (workflows + credentials) | Afgerond |
+| Docker containers stoppen + verwijderen | Afgerond |
+| Docker/containerd uitschakelen | Afgerond |
+| Onnodige services stoppen | Afgerond |
+| 4GB swap configureren | Afgerond |
+| Syncthing installeren + service | Afgerond |
+| MusicGen dependencies (torch + transformers) | Afgerond |
+| Ollama tuning voor ARM | Afgerond |
 
-## Fase 5: Golden hour / zon — AFGEROND
-
+### Fase 3: Netwerk/Domein — AFGEROND (2026-10-01)
 | Stap | Status |
 |------|--------|
-| sunrisesunset.io API integratie | Afgerond |
-| Zonsopgang, golden hour, zonsondergang tonen | Afgerond |
+| DNS ollama.brionize.nl bij Vimexx | Afgerond |
+| Caddy installatie (apt) | Afgerond |
+| SSL certificaat (Let's Encrypt) | Afgerond |
+| Firewall fix (iptables poort 80/443) | Afgerond |
+| OLLAMA_ORIGINS=* (CORS) | Afgerond |
+| OLLAMA_HOST=0.0.0.0 | Afgerond |
+| https://ollama.brionize.nl/ bereikbaar | Afgerond |
 
-## Fase 6: Radio — AFGEROND
-
+### Fase 4: Beveiliging — NIET GESTART
 | Stap | Status |
 |------|--------|
-| Radio Browser API integratie | Afgerond |
-| Zoeken op nabije stations | Afgerond |
-| Audio player met play/stop toggle | Afgerond |
+| API key via Caddy header auth | Niet gestart |
+| Rate limiting | Niet gestart |
 
-## Fase 7: Aardbevingen — AFGEROND
-
+### Fase 5: Ollama PWA — NIET GESTART
 | Stap | Status |
 |------|--------|
-| USGS GeoJSON feed (M2.5+ afgelopen dag) | Afgerond |
-| Gekleurde cirkelmarkers op de kaart | Afgerond |
-| Detail bij klik (magnitude, diepte, tijd, tsunami) | Afgerond |
+| PWA ontwerp (chat interface met projecten) | Niet gestart |
+| Frontend bouwen (vanilla JS) | Niet gestart |
+| Deploy naar Cloudflare Pages | Niet gestart |
+| Project systeem (zoals ChatGPT/Claude) | Niet gestart |
 
-## Fase 8: ISS — AFGEROND
-
+### Fase 6: Ollama Config Systeem — NIET GESTART
 | Stap | Status |
 |------|--------|
-| ISS positie API (real-time elke 5 sec) | Afgerond |
-| Bewegende marker met trail polyline | Afgerond |
-| NASA TV YouTube streams embed | Afgerond |
+| ~/ollama-matrix/base.txt (grondwet) | Niet gestart |
+| Per-task configs (narrator, researcher, etc.) | Niet gestart |
+| Per-project configs | Niet gestart |
+| Modelfiles voor specifieke taken | Niet gestart |
 
-## Fase 9: Aurora / noorderlicht — AFGEROND
-
+### Fase 7: Docu-generator v3 — NIET GESTART
 | Stap | Status |
 |------|--------|
-| NOAA Kp-index forecast | Afgerond |
-| Zichtbaarheidskans op basis van latitude | Afgerond |
-| Alleen tonen bij locaties >40° | Afgerond |
+| Research module (DDG + trafilatura + Ollama) | Niet gestart |
+| Cloud AI integratie (DuckDuckGo Chat) | Niet gestart |
+| yt-dlp video b-roll | Niet gestart |
+| Volledig autonome pipeline | Niet gestart |
 
-## Fase 10: Events (festivals, concerten, venues) — AFGEROND
-
+### Fase 8: MusicGen — NIET GESTART
 | Stap | Status |
 |------|--------|
-| festivals.json (15 entries met YouTube kanalen) | Afgerond |
-| Pins op de kaart (paars, kleurgecodeerd) | Afgerond |
-| YouTube kanaal link bij klik | Afgerond |
+| generate-music.py script | Niet gestart |
+| Muziekbibliotheek vullen | Niet gestart |
 
-## Fase 11: Monumenten (kastelen, musea, natuur) — AFGEROND
+---
 
-| Stap | Status |
-|------|--------|
-| monuments.json (20 entries wereldwijd) | Afgerond |
-| Pins op de kaart (oranje) | Afgerond |
-| Wikipedia + weer + zon bij klik | Afgerond |
+## Docu-generator (bestaand)
 
-## Fase 12: UFO meldingen — AFGEROND
+| Versie | Status |
+|--------|--------|
+| v1 (docu-generator.py) | Werkend, basis |
+| v2 (docu-generator-v2.py) | Werkend, met subtitles, Ken Burns, xfade |
+| v3 (gepland) | Research + cloud AI + yt-dlp + autonoom |
 
-| Stap | Status |
-|------|--------|
-| ufo-sightings.json (25 meldingen, 5x NL) | Afgerond |
-| js/ufo.js module | Afgerond |
-| UFO als toggle laag op de kaart | Afgerond |
-| Detail bij klik (vorm, duur, beschrijving, bron) | Afgerond |
-
-## Fase 13: Telescopen — AFGEROND
-
-| Stap | Status |
-|------|--------|
-| telescopes.json (8 observatoria) | Afgerond |
-| Pins op de kaart (blauw) | Afgerond |
-| Website + webcam links bij klik | Afgerond |
-
-## Fase 14: Roadtrip — AFGEROND
-
-| Stap | Status |
-|------|--------|
-| OSRM route berekening (gratis, geen API key) | Afgerond |
-| Route tekenen op de kaart | Afgerond |
-| Afstand + rijtijd berekening | Afgerond |
-| Camera's en pins langs route markeren (15km buffer) | Afgerond |
-| UI: klik start/eind op kaart, wissen | Afgerond |
-
-## Fase 15: 3D globe (optioneel) — NIET GESTART
-
-| Stap | Status |
-|------|--------|
-| Three.js globe implementatie | Nog niet gestart |
-| Toggle 2D/3D | Nog niet gestart |
+---
 
 ## Bugfixes
-
 | Bug | Status |
 |------|--------|
-| Radio.toggle gebruikte onbestaand `event` object | Gefixt |
-| ISS click handler toonde verouderde positie | Gefixt |
-
-## Nog te doen (met gebruiker)
-
-- [ ] Deploy naar Cloudflare Pages
-- [ ] Cloudflare Worker proxy deployen
-- [ ] Testen op Samsung Galaxy S22 Ultra
-- [ ] Extra camerabronnen toevoegen
-- [ ] 3D globe (optioneel, fase 15)
+| Radio.toggle onbestaand event object | Gefixt |
+| ISS click handler verouderde positie | Gefixt |
+| Caddy SSL: iptables regels na REJECT | Gefixt (positie 1) |
+| Ollama 403 vanuit browser | Gefixt (OLLAMA_ORIGINS=*) |
