@@ -114,7 +114,7 @@ Vertelling:"""
     try:
         result = subprocess.run(
             ["ollama", "run", "llama3.1:8b"],
-            input=prompt, capture_output=True, text=True, timeout=60
+            input=prompt, capture_output=True, text=True, timeout=300
         )
         if result.returncode == 0 and result.stdout.strip():
             text = result.stdout.strip()
