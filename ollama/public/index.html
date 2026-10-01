@@ -16,19 +16,25 @@
 :root {
   --bg: #0a0a0f;
   --bg-chat: #12121a;
+  --bg-sidebar: #0e0e16;
   --bg-msg-user: #1e1b4b;
   --bg-msg-ai: #1a1a2e;
   --bg-input: #16161f;
   --bg-header: #0e0e16;
+  --bg-hover: #1a1a2e;
   --border: #2a2a3a;
   --text: #e2e8f0;
   --text-dim: #94a3b8;
+  --text-muted: #64748b;
   --accent: #6366f1;
   --accent-hover: #818cf8;
+  --accent-dim: #4f46e5;
   --code-bg: #1e1e2e;
   --error: #ef4444;
   --success: #22c55e;
+  --warning: #f59e0b;
   --radius: 12px;
+  --sidebar-w: 280px;
 }
 
 html, body {
@@ -41,40 +47,224 @@ html, body {
   -webkit-font-smoothing: antialiased;
 }
 
-body {
+body { display: flex; overflow: hidden; }
+
+/* ── Sidebar ── */
+.sidebar {
+  width: var(--sidebar-w);
+  background: var(--bg-sidebar);
+  border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
+  flex-shrink: 0;
+  height: 100%;
+  transition: transform 0.2s ease;
+  z-index: 20;
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sidebar-header img { width: 28px; height: 28px; }
+
+.sidebar-brand {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  flex: 1;
+}
+
+.sidebar-new {
+  background: var(--accent);
+  color: white;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+
+.sidebar-new:hover { background: var(--accent-hover); }
+
+.sidebar-search {
+  padding: 8px 12px;
+}
+
+.sidebar-search input {
+  width: 100%;
+  background: var(--bg-input);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 7px 10px;
+  font-size: 13px;
+  font-family: inherit;
+}
+
+.sidebar-search input:focus { outline: none; border-color: var(--accent); }
+.sidebar-search input::placeholder { color: var(--text-muted); }
+
+.conv-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 8px;
+}
+
+.conv-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.1s;
+  position: relative;
+}
+
+.conv-item:hover { background: var(--bg-hover); }
+.conv-item.active { background: var(--accent-dim); }
+
+.conv-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  color: var(--text-dim);
+}
+
+.conv-item.active .conv-icon { color: white; }
+
+.conv-title {
+  flex: 1;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-dim);
+}
+
+.conv-item.active .conv-title { color: white; font-weight: 500; }
+.conv-item:hover .conv-title { color: var(--text); }
+
+.conv-actions {
+  display: none;
+  gap: 2px;
+}
+
+.conv-item:hover .conv-actions { display: flex; }
+
+.conv-action {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.conv-action:hover { color: var(--text); background: rgba(255,255,255,0.08); }
+.conv-action.del:hover { color: var(--error); }
+
+.conv-date {
+  padding: 8px 10px 4px;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sidebar-footer {
+  padding: 10px 12px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 6px;
+}
+
+.sidebar-footer button {
+  flex: 1;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  padding: 7px;
+  border-radius: 8px;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+
+.sidebar-footer button:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ── Main area ── */
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  height: 100%;
 }
 
 /* Header */
 .header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
+  gap: 10px;
+  padding: 10px 16px;
   background: var(--bg-header);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
   z-index: 10;
 }
 
-.header-logo {
-  width: 32px;
-  height: 32px;
-  flex-shrink: 0;
+.menu-btn {
+  display: none;
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
 }
 
-.header-title {
-  font-size: 16px;
+.header-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.conv-name {
+  font-size: 15px;
   font-weight: 600;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .header-controls {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-left: auto;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
 select, button, input, textarea {
@@ -93,6 +283,17 @@ select, button, input, textarea {
   max-width: 160px;
 }
 
+.preset-select {
+  background: var(--bg-input);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 13px;
+  cursor: pointer;
+  max-width: 140px;
+}
+
 .icon-btn {
   background: none;
   border: 1px solid var(--border);
@@ -105,11 +306,22 @@ select, button, input, textarea {
   align-items: center;
   justify-content: center;
   transition: all 0.15s;
+  flex-shrink: 0;
 }
 
 .icon-btn:hover { border-color: var(--accent); color: var(--accent); }
 
-/* Chat area */
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--error);
+  flex-shrink: 0;
+}
+
+.status-dot.ok { background: var(--success); }
+
+/* ── Chat area ── */
 .chat {
   flex: 1;
   overflow-y: auto;
@@ -121,7 +333,8 @@ select, button, input, textarea {
 }
 
 .msg {
-  max-width: 85%;
+  max-width: 800px;
+  width: 100%;
   padding: 12px 16px;
   border-radius: var(--radius);
   word-wrap: break-word;
@@ -132,6 +345,7 @@ select, button, input, textarea {
   background: var(--bg-msg-user);
   align-self: flex-end;
   border-bottom-right-radius: 4px;
+  max-width: 85%;
 }
 
 .msg-ai {
@@ -140,11 +354,24 @@ select, button, input, textarea {
   border-bottom-left-radius: 4px;
 }
 
+.msg-ai .msg-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
 .msg-ai .model-tag {
   font-size: 11px;
   color: var(--accent);
-  margin-bottom: 4px;
-  font-weight: 500;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.msg-ai .msg-time {
+  font-size: 11px;
+  color: var(--text-muted);
 }
 
 .msg-error {
@@ -153,63 +380,68 @@ select, button, input, textarea {
   color: var(--error);
   align-self: center;
   font-size: 13px;
+  max-width: 600px;
 }
 
-/* Markdown in AI messages */
+/* Markdown */
 .msg-ai p { margin: 0.4em 0; }
-.msg-ai p:first-child { margin-top: 0; }
-.msg-ai p:last-child { margin-bottom: 0; }
+.msg-ai p:first-of-type { margin-top: 0; }
+.msg-ai p:last-of-type { margin-bottom: 0; }
 
 .msg-ai code {
   background: var(--code-bg);
   padding: 2px 6px;
   border-radius: 4px;
-  font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+  font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'JetBrains Mono', monospace;
   font-size: 13px;
 }
 
 .msg-ai pre {
   background: var(--code-bg);
-  padding: 12px;
   border-radius: 8px;
   overflow-x: auto;
   margin: 8px 0;
   position: relative;
+  border: 1px solid var(--border);
 }
 
-.msg-ai pre code {
-  background: none;
-  padding: 0;
-  font-size: 13px;
-  line-height: 1.5;
+.code-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  background: rgba(255,255,255,0.03);
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
 }
 
 .code-lang {
-  position: absolute;
-  top: 6px;
-  right: 8px;
-  font-size: 10px;
   color: var(--text-dim);
-  text-transform: uppercase;
+  text-transform: lowercase;
+  font-family: 'SF Mono', 'Fira Code', monospace;
 }
 
 .copy-btn {
-  position: absolute;
-  top: 6px;
-  right: 8px;
-  background: var(--border);
-  color: var(--text-dim);
+  background: none;
+  color: var(--text-muted);
   border: none;
-  border-radius: 4px;
   padding: 2px 8px;
-  font-size: 11px;
+  font-size: 12px;
   cursor: pointer;
-  opacity: 0;
-  transition: opacity 0.15s;
+  border-radius: 4px;
+  font-family: inherit;
+  transition: all 0.15s;
 }
 
-.msg-ai pre:hover .copy-btn { opacity: 1; }
-.copy-btn:hover { color: var(--text); }
+.copy-btn:hover { color: var(--text); background: rgba(255,255,255,0.06); }
+
+.msg-ai pre code {
+  background: none;
+  padding: 12px;
+  font-size: 13px;
+  line-height: 1.55;
+  display: block;
+}
 
 .msg-ai ul, .msg-ai ol {
   padding-left: 20px;
@@ -234,11 +466,7 @@ select, button, input, textarea {
   margin: 8px 0;
 }
 
-.msg-ai hr {
-  border: none;
-  border-top: 1px solid var(--border);
-  margin: 12px 0;
-}
+.msg-ai hr { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
 
 .msg-ai table {
   border-collapse: collapse;
@@ -253,12 +481,9 @@ select, button, input, textarea {
   text-align: left;
 }
 
-.msg-ai th {
-  background: var(--code-bg);
-  font-weight: 600;
-}
+.msg-ai th { background: var(--code-bg); font-weight: 600; }
 
-/* Typing indicator */
+/* Typing */
 .typing {
   display: inline-flex;
   gap: 4px;
@@ -281,7 +506,7 @@ select, button, input, textarea {
   40% { opacity: 1; }
 }
 
-/* Input area */
+/* ── Input area ── */
 .input-area {
   padding: 12px 16px;
   padding-bottom: max(12px, env(safe-area-inset-bottom));
@@ -294,6 +519,8 @@ select, button, input, textarea {
   display: flex;
   gap: 8px;
   align-items: flex-end;
+  max-width: 800px;
+  margin: 0 auto;
 }
 
 .input-wrap {
@@ -315,12 +542,15 @@ select, button, input, textarea {
   transition: border-color 0.15s;
 }
 
-#prompt:focus {
-  outline: none;
-  border-color: var(--accent);
-}
+#prompt:focus { outline: none; border-color: var(--accent); }
+#prompt::placeholder { color: var(--text-muted); }
 
-#prompt::placeholder { color: var(--text-dim); }
+.input-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+  text-align: center;
+}
 
 .send-btn {
   background: var(--accent);
@@ -340,7 +570,23 @@ select, button, input, textarea {
 .send-btn:hover { background: var(--accent-hover); }
 .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-/* Welcome screen */
+.stop-btn {
+  background: var(--error);
+  color: white;
+  border: none;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.stop-btn:hover { background: #dc2626; }
+
+/* ── Welcome ── */
 .welcome {
   flex: 1;
   display: flex;
@@ -352,42 +598,37 @@ select, button, input, textarea {
   gap: 16px;
 }
 
-.welcome h2 {
-  font-size: 24px;
-  font-weight: 600;
-}
-
-.welcome p {
-  color: var(--text-dim);
-  max-width: 400px;
-}
+.welcome h2 { font-size: 24px; font-weight: 700; }
+.welcome p { color: var(--text-dim); max-width: 420px; }
 
 .welcome-prompts {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 8px;
-  justify-content: center;
   max-width: 500px;
   margin-top: 8px;
+  width: 100%;
 }
 
 .welcome-prompt {
   background: var(--bg-input);
   border: 1px solid var(--border);
   color: var(--text-dim);
-  padding: 8px 14px;
-  border-radius: 20px;
+  padding: 12px 14px;
+  border-radius: 12px;
   cursor: pointer;
   font-size: 13px;
+  text-align: left;
   transition: all 0.15s;
+  font-family: inherit;
 }
 
-.welcome-prompt:hover {
-  border-color: var(--accent);
-  color: var(--text);
-}
+.welcome-prompt:hover { border-color: var(--accent); color: var(--text); }
 
-/* Settings modal */
+.welcome-prompt .wp-icon { font-size: 18px; display: block; margin-bottom: 4px; }
+.welcome-prompt .wp-text { display: block; }
+
+/* ── Modal ── */
 .modal-overlay {
   display: none;
   position: fixed;
@@ -407,50 +648,48 @@ select, button, input, textarea {
   border-radius: 16px;
   padding: 24px;
   width: 100%;
-  max-width: 440px;
-  max-height: 80vh;
+  max-width: 480px;
+  max-height: 85vh;
   overflow-y: auto;
 }
 
-.modal h3 {
-  font-size: 18px;
-  margin-bottom: 16px;
-}
+.modal h3 { font-size: 18px; margin-bottom: 16px; }
 
-.field {
-  margin-bottom: 16px;
-}
+.field { margin-bottom: 14px; }
 
 .field label {
   display: block;
   font-size: 13px;
   color: var(--text-dim);
   margin-bottom: 4px;
+  font-weight: 500;
 }
 
-.field input, .field textarea {
+.field input, .field textarea, .field select {
   width: 100%;
   background: var(--bg-input);
   color: var(--text);
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 8px 12px;
+  font-family: inherit;
+  font-size: inherit;
 }
 
-.field textarea {
-  min-height: 80px;
-  resize: vertical;
-}
+.field textarea { min-height: 80px; resize: vertical; }
 
-.field input:focus, .field textarea:focus {
+.field input:focus, .field textarea:focus, .field select:focus {
   outline: none;
   border-color: var(--accent);
 }
+
+.field-hint { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
 
 .modal-actions {
   display: flex;
   gap: 8px;
   justify-content: flex-end;
+  margin-top: 20px;
 }
 
 .btn {
@@ -460,6 +699,7 @@ select, button, input, textarea {
   cursor: pointer;
   border: none;
   transition: all 0.15s;
+  font-family: inherit;
 }
 
 .btn-primary { background: var(--accent); color: white; }
@@ -469,73 +709,137 @@ select, button, input, textarea {
 .btn-danger { background: none; color: var(--error); border: 1px solid var(--error); }
 .btn-danger:hover { background: var(--error); color: white; }
 
-/* Connection status */
-.status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--error);
-  flex-shrink: 0;
+/* ── Rename input inline ── */
+.conv-rename {
+  background: var(--bg-input);
+  color: var(--text);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 13px;
+  font-family: inherit;
+  width: 100%;
 }
 
-.status-dot.ok { background: var(--success); }
-
-/* Scrollbar */
+/* ── Scrollbar ── */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
 
-/* Mobile */
-@media (max-width: 600px) {
-  .header-title { font-size: 14px; }
-  .msg { max-width: 92%; }
+/* ── Mobile overlay ── */
+.sidebar-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 15;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    transform: translateX(-100%);
+  }
+
+  .sidebar.open { transform: translateX(0); }
+  .sidebar.open ~ .sidebar-backdrop { display: block; }
+
+  .menu-btn { display: flex; }
+  .msg { max-width: 95%; }
+  .msg-user { max-width: 90%; }
   .model-select { max-width: 120px; font-size: 12px; }
+  .preset-select { max-width: 100px; font-size: 12px; }
   .welcome h2 { font-size: 20px; }
+  .welcome-prompts { grid-template-columns: 1fr; }
 }
 </style>
 </head>
 <body>
 
-<header class="header">
-  <img src="/icon-192.svg" alt="" class="header-logo">
-  <span class="header-title">Ollama</span>
-  <div class="header-controls">
-    <span class="status-dot" id="status" title="Verbinding"></span>
-    <select class="model-select" id="model-select" title="Model">
-      <option value="">Modellen laden...</option>
-    </select>
-    <button class="icon-btn" id="btn-new" title="Nieuw gesprek">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-    </button>
-    <button class="icon-btn" id="btn-settings" title="Instellingen">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+<!-- Sidebar -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <img src="/icon-192.svg" alt="">
+    <span class="sidebar-brand">Ollama</span>
+    <button class="sidebar-new" id="btn-new-conv" title="Nieuw gesprek">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
     </button>
   </div>
-</header>
+  <div class="sidebar-search">
+    <input type="text" id="conv-search" placeholder="Zoeken...">
+  </div>
+  <div class="conv-list" id="conv-list"></div>
+  <div class="sidebar-footer">
+    <button id="btn-export" title="Exporteer gesprek">Exporteer</button>
+    <button id="btn-settings" title="Instellingen">Instellingen</button>
+  </div>
+</aside>
+<div class="sidebar-backdrop" id="sidebar-backdrop"></div>
 
-<div class="chat" id="chat">
-  <div class="welcome" id="welcome">
-    <img src="/icon-192.svg" alt="" width="64" height="64">
-    <h2>Hallo!</h2>
-    <p>Chat met je eigen AI. Alles draait lokaal op je server — privé en gratis.</p>
-    <div class="welcome-prompts">
-      <button class="welcome-prompt" data-prompt="Leg uit wat je kunt doen">Wat kun je?</button>
-      <button class="welcome-prompt" data-prompt="Schrijf een kort Python script dat bestanden hernoemt">Python script</button>
-      <button class="welcome-prompt" data-prompt="Wat is het verschil tussen Docker en Podman?">Docker vs Podman</button>
-      <button class="welcome-prompt" data-prompt="Geef 5 tips voor betere bash scripts">Bash tips</button>
+<!-- Main -->
+<div class="main">
+  <header class="header">
+    <button class="menu-btn" id="btn-menu">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+    </button>
+    <div class="header-info">
+      <span class="conv-name" id="conv-name">Nieuw gesprek</span>
+    </div>
+    <div class="header-controls">
+      <span class="status-dot" id="status" title="Verbinding"></span>
+      <select class="preset-select" id="preset-select" title="Preset">
+        <option value="">Geen preset</option>
+      </select>
+      <select class="model-select" id="model-select" title="Model">
+        <option value="">Laden...</option>
+      </select>
+      <button class="icon-btn" id="btn-settings2" title="Instellingen">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="chat" id="chat">
+    <div class="welcome" id="welcome">
+      <img src="/icon-192.svg" alt="" width="64" height="64" style="opacity:0.8">
+      <h2>Waar kan ik je mee helpen?</h2>
+      <p>Privé AI op je eigen server. Geen cloud, geen kosten, geen limieten.</p>
+      <div class="welcome-prompts">
+        <button class="welcome-prompt" data-prompt="Schrijf een Python script dat alle duplicate bestanden in een map vindt en verwijdert">
+          <span class="wp-icon">&#128187;</span>
+          <span class="wp-text">Python: duplicaten verwijderen</span>
+        </button>
+        <button class="welcome-prompt" data-prompt="Leg het verschil uit tussen Docker Compose en Kubernetes, met voor- en nadelen">
+          <span class="wp-icon">&#9881;</span>
+          <span class="wp-text">Docker vs Kubernetes</span>
+        </button>
+        <button class="welcome-prompt" data-prompt="Maak een bash script dat automatisch backups maakt van een PostgreSQL database met rotatie">
+          <span class="wp-icon">&#128190;</span>
+          <span class="wp-text">Bash: database backup</span>
+        </button>
+        <button class="welcome-prompt" data-prompt="Schrijf een uitgebreid Nginx configuratie met SSL, rate limiting en security headers">
+          <span class="wp-icon">&#128274;</span>
+          <span class="wp-text">Nginx security config</span>
+        </button>
+      </div>
     </div>
   </div>
-</div>
 
-<div class="input-area">
-  <div class="input-row">
-    <div class="input-wrap">
-      <textarea id="prompt" rows="1" placeholder="Typ een bericht..." autocomplete="off"></textarea>
+  <div class="input-area">
+    <div class="input-row">
+      <div class="input-wrap">
+        <textarea id="prompt" rows="1" placeholder="Typ een bericht... (Shift+Enter voor nieuwe regel)" autocomplete="off"></textarea>
+      </div>
+      <button class="send-btn" id="btn-send" title="Verstuur (Enter)">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+      </button>
     </div>
-    <button class="send-btn" id="btn-send" title="Verstuur">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
-    </button>
+    <div class="input-hint" id="input-hint"></div>
   </div>
 </div>
 
@@ -548,72 +852,143 @@ select, button, input, textarea {
       <input type="password" id="api-key" placeholder="Plak je API key hier">
     </div>
     <div class="field">
-      <label for="system-prompt">Systeemprompt (optioneel)</label>
-      <textarea id="system-prompt" placeholder="Bijv: Je bent een behulpzame Nederlandse assistent."></textarea>
+      <label for="system-prompt">Systeemprompt</label>
+      <textarea id="system-prompt" placeholder="Bijv: Je bent een ervaren developer die in het Nederlands antwoordt."></textarea>
+      <div class="field-hint">Wordt vooraan elk gesprek meegestuurd. Presets overschrijven dit.</div>
     </div>
     <div class="field">
-      <label for="temperature">Temperatuur (0.0 — 2.0)</label>
-      <input type="number" id="temperature" min="0" max="2" step="0.1" value="0.7">
+      <label for="temperature">Temperatuur</label>
+      <input type="range" id="temperature" min="0" max="2" step="0.1" value="0.7" style="padding:0">
+      <div class="field-hint">Huidig: <span id="temp-display">0.7</span> — lager = preciezer, hoger = creatiever</div>
     </div>
     <div class="modal-actions">
-      <button class="btn btn-danger" id="btn-clear-history">Wis geschiedenis</button>
+      <button class="btn btn-danger" id="btn-clear-all">Wis alles</button>
       <button class="btn btn-ghost" id="btn-cancel">Annuleer</button>
       <button class="btn btn-primary" id="btn-save">Opslaan</button>
     </div>
   </div>
 </div>
 
+<!-- Rename modal -->
+<div class="modal-overlay" id="rename-modal">
+  <div class="modal" style="max-width:360px">
+    <h3>Gesprek hernoemen</h3>
+    <div class="field">
+      <input type="text" id="rename-input" placeholder="Nieuwe naam" maxlength="80">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="btn-rename-cancel">Annuleer</button>
+      <button class="btn btn-primary" id="btn-rename-save">Opslaan</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const $ = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
+
+// ── Presets ──
+const PRESETS = [
+  { id: 'coder', name: 'Developer', system: 'Je bent een senior software developer. Je schrijft clean, goed gecommentarieerde code. Je antwoordt in het Nederlands maar code en technische termen blijven in het Engels. Je geeft altijd werkende, complete oplossingen — geen pseudocode of TODO\'s. Als je iets niet zeker weet, zeg je dat eerlijk.', temp: 0.3 },
+  { id: 'sysadmin', name: 'Sysadmin', system: 'Je bent een ervaren Linux systeembeheerder. Je helpt met server configuratie, netwerken, Docker, Nginx, security, monitoring en automatisering. Je geeft precieze commando\'s met uitleg. Je waarschuwt altijd voor risico\'s en maakt backups voordat je iets verandert.', temp: 0.3 },
+  { id: 'assistent', name: 'Assistent', system: 'Je bent een behulpzame, vriendelijke Nederlandse assistent. Je antwoordt beknopt en duidelijk. Je geeft praktische antwoorden zonder onnodig jargon.', temp: 0.7 },
+  { id: 'creatief', name: 'Creatief', system: 'Je bent een creatieve schrijver die in het Nederlands werkt. Je schrijft meeslepende teksten met een eigen stem. Je bent origineel, beeldend en durft risico\'s te nemen in je schrijfstijl.', temp: 1.2 },
+  { id: 'uitleg', name: 'Uitlegger', system: 'Je bent een geduldig en helder docent. Je legt complexe onderwerpen uit in eenvoudige taal, met voorbeelden en analogieen. Je past je niveau aan op basis van de vraag. Je gebruikt stap-voor-stap uitleg wanneer nodig.', temp: 0.5 },
+];
+
+// ── State ──
 const chat = $('#chat');
 const welcome = $('#welcome');
 const promptEl = $('#prompt');
 const sendBtn = $('#btn-send');
 const modelSelect = $('#model-select');
+const presetSelect = $('#preset-select');
 const statusDot = $('#status');
+const convNameEl = $('#conv-name');
+const convList = $('#conv-list');
+const sidebar = $('#sidebar');
 
-let messages = [];
+let conversations = {};
+let activeConvId = null;
 let generating = false;
 let abortCtrl = null;
 
+// ── Storage ──
 function getSetting(key, fallback) {
-  try { return localStorage.getItem('ollama_' + key) || fallback; } catch { return fallback; }
+  try { return localStorage.getItem('olla_' + key) || fallback; } catch { return fallback; }
 }
-
 function setSetting(key, val) {
-  try { localStorage.setItem('ollama_' + key, val); } catch {}
+  try { localStorage.setItem('olla_' + key, val); } catch {}
 }
-
 function apiKey() { return getSetting('apikey', ''); }
 
+function loadConversations() {
+  try {
+    const raw = localStorage.getItem('olla_convs');
+    if (raw) conversations = JSON.parse(raw);
+  } catch {}
+  // Migrate from old single-chat format
+  if (!Object.keys(conversations).length) {
+    try {
+      const old = localStorage.getItem('ollama_history');
+      if (old) {
+        const msgs = JSON.parse(old);
+        if (msgs.length) {
+          const id = genId();
+          conversations[id] = {
+            id, title: titleFromMessages(msgs), messages: msgs,
+            created: Date.now(), updated: Date.now(), model: localStorage.getItem('ollama_model') || ''
+          };
+          activeConvId = id;
+        }
+        localStorage.removeItem('ollama_history');
+      }
+    } catch {}
+    // Migrate settings keys
+    ['apikey','model','system','temperature'].forEach(k => {
+      const old = localStorage.getItem('ollama_' + k);
+      if (old) { setSetting(k, old); localStorage.removeItem('ollama_' + k); }
+    });
+  }
+}
+
+function saveConversations() {
+  try { localStorage.setItem('olla_convs', JSON.stringify(conversations)); } catch {}
+}
+
+function genId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+
+function titleFromMessages(msgs) {
+  const first = msgs.find(m => m.role === 'user');
+  if (!first) return 'Nieuw gesprek';
+  const text = first.content.slice(0, 60);
+  return text.length < first.content.length ? text + '...' : text;
+}
+
+// ── API ──
 async function apiFetch(path, opts = {}) {
   const key = apiKey();
   if (!key) { openSettings(); throw new Error('Geen API key ingesteld'); }
-
   const headers = { 'X-API-Key': key, ...opts.headers };
   const res = await fetch('/api' + path, { ...opts, headers });
-
-  if (res.status === 401) {
-    openSettings();
-    throw new Error('Ongeldige API key');
-  }
+  if (res.status === 401) { openSettings(); throw new Error('Ongeldige API key'); }
   if (!res.ok) throw new Error(`API fout: ${res.status}`);
   return res;
 }
 
-// Models
+// ── Models ──
 async function loadModels() {
   try {
     const res = await apiFetch('/tags');
     const data = await res.json();
     const models = data.models || [];
     modelSelect.innerHTML = '';
-
     if (!models.length) {
       modelSelect.innerHTML = '<option value="">Geen modellen</option>';
       return;
     }
-
     const saved = getSetting('model', '');
     models.forEach(m => {
       const opt = document.createElement('option');
@@ -622,49 +997,209 @@ async function loadModels() {
       if (m.name === saved) opt.selected = true;
       modelSelect.appendChild(opt);
     });
-
     if (!saved && models.length) setSetting('model', models[0].name);
     statusDot.classList.add('ok');
-  } catch (e) {
-    modelSelect.innerHTML = '<option value="">Fout bij laden</option>';
+  } catch {
+    modelSelect.innerHTML = '<option value="">Fout</option>';
     statusDot.classList.remove('ok');
   }
 }
 
 modelSelect.addEventListener('change', () => setSetting('model', modelSelect.value));
 
-// Chat history
-function loadHistory() {
-  try {
-    const saved = localStorage.getItem('ollama_history');
-    if (saved) {
-      messages = JSON.parse(saved);
-      if (messages.length) {
-        welcome.style.display = 'none';
-        messages.forEach(m => appendMsg(m.role, m.content, false));
-      }
+// ── Presets ──
+function initPresets() {
+  presetSelect.innerHTML = '<option value="">Geen preset</option>';
+  PRESETS.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p.id;
+    opt.textContent = p.name;
+    presetSelect.appendChild(opt);
+  });
+  const saved = getSetting('preset', '');
+  if (saved) presetSelect.value = saved;
+}
+
+presetSelect.addEventListener('change', () => {
+  setSetting('preset', presetSelect.value);
+});
+
+function getActiveSystemPrompt() {
+  const presetId = presetSelect.value;
+  if (presetId) {
+    const preset = PRESETS.find(p => p.id === presetId);
+    if (preset) return preset.system;
+  }
+  return getSetting('system', '');
+}
+
+function getActiveTemperature() {
+  const presetId = presetSelect.value;
+  if (presetId) {
+    const preset = PRESETS.find(p => p.id === presetId);
+    if (preset) return preset.temp;
+  }
+  return parseFloat(getSetting('temperature', '0.7'));
+}
+
+// ── Conversations sidebar ──
+function renderConvList(filter = '') {
+  convList.innerHTML = '';
+  const sorted = Object.values(conversations).sort((a, b) => b.updated - a.updated);
+  const needle = filter.toLowerCase();
+  const filtered = needle ? sorted.filter(c => c.title.toLowerCase().includes(needle)) : sorted;
+
+  let lastGroup = '';
+  filtered.forEach(conv => {
+    const group = dateGroup(conv.updated);
+    if (group !== lastGroup) {
+      lastGroup = group;
+      const g = document.createElement('div');
+      g.className = 'conv-date';
+      g.textContent = group;
+      convList.appendChild(g);
     }
-  } catch {}
+
+    const item = document.createElement('div');
+    item.className = 'conv-item' + (conv.id === activeConvId ? ' active' : '');
+    item.dataset.id = conv.id;
+    item.innerHTML = `
+      <svg class="conv-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+      <span class="conv-title">${escapeHtml(conv.title)}</span>
+      <div class="conv-actions">
+        <button class="conv-action ren" title="Hernoemen"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.83 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg></button>
+        <button class="conv-action del" title="Verwijderen"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button>
+      </div>
+    `;
+    item.addEventListener('click', e => {
+      if (e.target.closest('.conv-action')) return;
+      switchConv(conv.id);
+      closeSidebar();
+    });
+    item.querySelector('.ren').addEventListener('click', () => openRename(conv.id));
+    item.querySelector('.del').addEventListener('click', () => deleteConv(conv.id));
+    convList.appendChild(item);
+  });
+
+  if (!filtered.length) {
+    const empty = document.createElement('div');
+    empty.style.cssText = 'padding:20px;text-align:center;color:var(--text-muted);font-size:13px';
+    empty.textContent = needle ? 'Geen resultaten' : 'Nog geen gesprekken';
+    convList.appendChild(empty);
+  }
 }
 
-function saveHistory() {
-  try { localStorage.setItem('ollama_history', JSON.stringify(messages)); } catch {}
+function dateGroup(ts) {
+  const d = new Date(ts);
+  const now = new Date();
+  const diff = (now - d) / 86400000;
+  if (diff < 1 && d.getDate() === now.getDate()) return 'Vandaag';
+  if (diff < 2) return 'Gisteren';
+  if (diff < 7) return 'Deze week';
+  if (diff < 30) return 'Deze maand';
+  return d.toLocaleDateString('nl-NL', { month: 'long', year: 'numeric' });
 }
 
-// Markdown rendering
+function switchConv(id) {
+  if (generating && abortCtrl) abortCtrl.abort();
+  activeConvId = id;
+  setSetting('active', id);
+  const conv = conversations[id];
+  if (!conv) return;
+
+  convNameEl.textContent = conv.title;
+  chat.querySelectorAll('.msg').forEach(m => m.remove());
+  welcome.style.display = conv.messages.length ? 'none' : '';
+
+  conv.messages.forEach(m => appendMsg(m.role, m.content, false));
+  chat.scrollTop = chat.scrollHeight;
+  renderConvList($('#conv-search').value);
+}
+
+function newConv() {
+  if (generating && abortCtrl) abortCtrl.abort();
+  const id = genId();
+  conversations[id] = {
+    id, title: 'Nieuw gesprek', messages: [],
+    created: Date.now(), updated: Date.now(), model: modelSelect.value
+  };
+  saveConversations();
+  switchConv(id);
+  closeSidebar();
+  promptEl.focus();
+}
+
+function deleteConv(id) {
+  const conv = conversations[id];
+  if (!conv) return;
+  if (!confirm(`"${conv.title}" verwijderen?`)) return;
+  delete conversations[id];
+  saveConversations();
+  if (activeConvId === id) {
+    const ids = Object.keys(conversations);
+    if (ids.length) {
+      switchConv(Object.values(conversations).sort((a, b) => b.updated - a.updated)[0].id);
+    } else {
+      newConv();
+    }
+  } else {
+    renderConvList($('#conv-search').value);
+  }
+}
+
+let renameId = null;
+function openRename(id) {
+  renameId = id;
+  $('#rename-input').value = conversations[id]?.title || '';
+  $('#rename-modal').classList.add('open');
+  setTimeout(() => $('#rename-input').focus(), 50);
+}
+
+$('#btn-rename-save').addEventListener('click', () => {
+  if (renameId && conversations[renameId]) {
+    const val = $('#rename-input').value.trim();
+    if (val) {
+      conversations[renameId].title = val;
+      saveConversations();
+      if (renameId === activeConvId) convNameEl.textContent = val;
+      renderConvList($('#conv-search').value);
+    }
+  }
+  $('#rename-modal').classList.remove('open');
+});
+
+$('#btn-rename-cancel').addEventListener('click', () => {
+  $('#rename-modal').classList.remove('open');
+});
+
+$('#rename-modal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) $('#rename-modal').classList.remove('open');
+});
+
+$('#rename-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); $('#btn-rename-save').click(); }
+});
+
+// ── Sidebar toggle ──
+function openSidebar() { sidebar.classList.add('open'); }
+function closeSidebar() { sidebar.classList.remove('open'); }
+$('#btn-menu').addEventListener('click', openSidebar);
+$('#sidebar-backdrop').addEventListener('click', closeSidebar);
+$('#conv-search').addEventListener('input', e => renderConvList(e.target.value));
+$('#btn-new-conv').addEventListener('click', newConv);
+
+// ── Markdown ──
 function renderMd(text) {
   let html = text;
 
-  // Code blocks
   html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) => {
     const escaped = escapeHtml(code.trimEnd());
-    return `<pre><code>${escaped}</code><button class="copy-btn" onclick="copyCode(this)">kopieer</button></pre>`;
+    const langLabel = lang || 'code';
+    return `<pre><div class="code-header"><span class="code-lang">${langLabel}</span><button class="copy-btn" onclick="copyCode(this)">kopieer</button></div><code>${escaped}</code></pre>`;
   });
 
-  // Inline code
   html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
 
-  // Tables
   html = html.replace(/^(\|.+\|)\n(\|[-| :]+\|)\n((?:\|.+\|\n?)*)/gm, (_, header, sep, body) => {
     const ths = header.split('|').filter(c => c.trim()).map(c => `<th>${c.trim()}</th>`).join('');
     const rows = body.trim().split('\n').map(row => {
@@ -674,52 +1209,36 @@ function renderMd(text) {
     return `<table><thead><tr>${ths}</tr></thead><tbody>${rows}</tbody></table>`;
   });
 
-  // Bold / italic
   html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
   html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
-
-  // Blockquote
   html = html.replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>');
-
-  // Unordered list
   html = html.replace(/^[*-] (.+)$/gm, '<li>$1</li>');
   html = html.replace(/((?:<li>.*<\/li>\n?)+)/g, '<ul>$1</ul>');
-
-  // Ordered list
   html = html.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
-
-  // Headings
   html = html.replace(/^### (.+)$/gm, '<strong>$1</strong>');
   html = html.replace(/^## (.+)$/gm, '<strong>$1</strong>');
   html = html.replace(/^# (.+)$/gm, '<strong>$1</strong>');
-
-  // HR
   html = html.replace(/^---$/gm, '<hr>');
-
-  // Links
   html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
-
-  // Paragraphs
   html = html.replace(/\n\n/g, '</p><p>');
   html = html.replace(/\n/g, '<br>');
   if (!html.startsWith('<')) html = '<p>' + html + '</p>';
-
   return html;
 }
 
 function escapeHtml(s) {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 window.copyCode = function(btn) {
-  const code = btn.parentElement.querySelector('code').textContent;
+  const code = btn.closest('pre').querySelector('code').textContent;
   navigator.clipboard.writeText(code).then(() => {
     btn.textContent = 'gekopieerd!';
     setTimeout(() => btn.textContent = 'kopieer', 1500);
   });
 };
 
-// Messages
+// ── Messages ──
 function appendMsg(role, content, scroll = true) {
   const div = document.createElement('div');
   div.className = `msg msg-${role === 'user' ? 'user' : 'ai'}`;
@@ -728,7 +1247,8 @@ function appendMsg(role, content, scroll = true) {
     div.textContent = content;
   } else {
     const model = getSetting('model', '').replace(':latest', '');
-    div.innerHTML = `<div class="model-tag">${escapeHtml(model)}</div>` + renderMd(content);
+    const time = new Date().toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+    div.innerHTML = `<div class="msg-head"><span class="model-tag">${escapeHtml(model)}</span><span class="msg-time">${time}</span></div>` + renderMd(content);
   }
 
   chat.appendChild(div);
@@ -744,25 +1264,39 @@ function appendError(text) {
   chat.scrollTop = chat.scrollHeight;
 }
 
-// Send message
+// ── Send ──
 async function send(text) {
   if (!text.trim() || generating) return;
   text = text.trim();
 
+  if (!activeConvId) newConv();
+  const conv = conversations[activeConvId];
+  if (!conv) return;
+
   welcome.style.display = 'none';
-  messages.push({ role: 'user', content: text });
+  conv.messages.push({ role: 'user', content: text });
   appendMsg('user', text);
-  saveHistory();
+
+  if (conv.title === 'Nieuw gesprek' && conv.messages.length === 1) {
+    conv.title = titleFromMessages(conv.messages);
+    convNameEl.textContent = conv.title;
+    renderConvList($('#conv-search').value);
+  }
+
+  conv.updated = Date.now();
+  conv.model = modelSelect.value;
+  saveConversations();
 
   promptEl.value = '';
   autoResize();
   generating = true;
-  sendBtn.disabled = true;
+  updateSendButton();
 
   const aiDiv = document.createElement('div');
   aiDiv.className = 'msg msg-ai';
   const model = getSetting('model', '').replace(':latest', '');
-  aiDiv.innerHTML = `<div class="model-tag">${escapeHtml(model)}</div><div class="typing"><span></span><span></span><span></span></div>`;
+  const time = new Date().toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+  aiDiv.innerHTML = `<div class="msg-head"><span class="model-tag">${escapeHtml(model)}</span><span class="msg-time">${time}</span></div><div class="typing"><span></span><span></span><span></span></div>`;
   chat.appendChild(aiDiv);
   chat.scrollTop = chat.scrollHeight;
 
@@ -772,11 +1306,11 @@ async function send(text) {
   try {
     const body = {
       model: modelSelect.value,
-      messages: buildMessages(),
+      messages: buildMessages(conv),
       stream: true
     };
 
-    const temp = parseFloat(getSetting('temperature', '0.7'));
+    const temp = getActiveTemperature();
     if (!isNaN(temp)) body.options = { temperature: temp };
 
     const res = await apiFetch('/chat', {
@@ -789,11 +1323,11 @@ async function send(text) {
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
+    let tokenCount = 0;
 
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
-
       buffer += decoder.decode(value, { stream: true });
       const lines = buffer.split('\n');
       buffer = lines.pop();
@@ -804,19 +1338,33 @@ async function send(text) {
           const chunk = JSON.parse(line);
           if (chunk.message?.content) {
             fullResponse += chunk.message.content;
-            aiDiv.innerHTML = `<div class="model-tag">${escapeHtml(model)}</div>` + renderMd(fullResponse);
-            chat.scrollTop = chat.scrollHeight;
+            tokenCount++;
+            if (tokenCount % 3 === 0 || chunk.done) {
+              aiDiv.innerHTML = `<div class="msg-head"><span class="model-tag">${escapeHtml(model)}</span><span class="msg-time">${time}</span></div>` + renderMd(fullResponse);
+              chat.scrollTop = chat.scrollHeight;
+            }
+          }
+          if (chunk.done && chunk.eval_count) {
+            const tps = (chunk.eval_count / (chunk.eval_duration / 1e9)).toFixed(1);
+            $('#input-hint').textContent = `${chunk.eval_count} tokens · ${tps} t/s`;
+            setTimeout(() => { $('#input-hint').textContent = ''; }, 5000);
           }
         } catch {}
       }
+    }
+
+    // Final render
+    if (fullResponse) {
+      aiDiv.innerHTML = `<div class="msg-head"><span class="model-tag">${escapeHtml(model)}</span><span class="msg-time">${time}</span></div>` + renderMd(fullResponse);
     }
 
     if (!fullResponse) {
       aiDiv.remove();
       appendError('Geen antwoord ontvangen');
     } else {
-      messages.push({ role: 'assistant', content: fullResponse });
-      saveHistory();
+      conv.messages.push({ role: 'assistant', content: fullResponse });
+      conv.updated = Date.now();
+      saveConversations();
     }
   } catch (e) {
     aiDiv.remove();
@@ -826,28 +1374,43 @@ async function send(text) {
   }
 
   generating = false;
-  sendBtn.disabled = false;
   abortCtrl = null;
+  updateSendButton();
   promptEl.focus();
 }
 
-function buildMessages() {
-  const sys = getSetting('system', '');
+function buildMessages(conv) {
+  const sys = getActiveSystemPrompt();
   const msgs = [];
   if (sys) msgs.push({ role: 'system', content: sys });
-  msgs.push(...messages);
+  msgs.push(...conv.messages);
   return msgs;
 }
 
-// Input handling
+function updateSendButton() {
+  if (generating) {
+    sendBtn.className = 'stop-btn';
+    sendBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>';
+    sendBtn.title = 'Stop generatie';
+    sendBtn.disabled = false;
+    sendBtn.onclick = () => { if (abortCtrl) abortCtrl.abort(); };
+  } else {
+    sendBtn.className = 'send-btn';
+    sendBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>';
+    sendBtn.title = 'Verstuur (Enter)';
+    sendBtn.disabled = false;
+    sendBtn.onclick = () => send(promptEl.value);
+  }
+}
+
+// ── Input handling ──
 promptEl.addEventListener('keydown', e => {
   if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault();
+    if (generating) return;
     send(promptEl.value);
   }
 });
-
-sendBtn.addEventListener('click', () => send(promptEl.value));
 
 function autoResize() {
   promptEl.style.height = 'auto';
@@ -855,33 +1418,54 @@ function autoResize() {
 }
 promptEl.addEventListener('input', autoResize);
 
-// Welcome prompts
-document.querySelectorAll('.welcome-prompt').forEach(btn => {
+$$('.welcome-prompt').forEach(btn => {
   btn.addEventListener('click', () => {
     promptEl.value = btn.dataset.prompt;
     send(promptEl.value);
   });
 });
 
-// New chat
-$('#btn-new').addEventListener('click', () => {
-  if (generating && abortCtrl) abortCtrl.abort();
-  messages = [];
-  saveHistory();
-  chat.querySelectorAll('.msg').forEach(m => m.remove());
-  welcome.style.display = '';
-  promptEl.focus();
+// ── Export ──
+$('#btn-export').addEventListener('click', () => {
+  if (!activeConvId || !conversations[activeConvId]) return;
+  const conv = conversations[activeConvId];
+  if (!conv.messages.length) { alert('Geen berichten om te exporteren'); return; }
+
+  let md = `# ${conv.title}\n\nGeexporteerd: ${new Date().toLocaleString('nl-NL')}\nModel: ${conv.model || 'onbekend'}\n\n---\n\n`;
+  conv.messages.forEach(m => {
+    if (m.role === 'user') {
+      md += `## Gebruiker\n\n${m.content}\n\n`;
+    } else if (m.role === 'assistant') {
+      md += `## Assistent\n\n${m.content}\n\n`;
+    }
+  });
+
+  const blob = new Blob([md], { type: 'text/markdown' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = conv.title.replace(/[^a-zA-Z0-9 -]/g, '').replace(/\s+/g, '-').toLowerCase() + '.md';
+  a.click();
+  URL.revokeObjectURL(url);
+  closeSidebar();
 });
 
-// Settings
+// ── Settings ──
 function openSettings() {
   $('#api-key').value = apiKey();
   $('#system-prompt').value = getSetting('system', '');
-  $('#temperature').value = getSetting('temperature', '0.7');
+  const temp = getSetting('temperature', '0.7');
+  $('#temperature').value = temp;
+  $('#temp-display').textContent = temp;
   $('#settings-modal').classList.add('open');
 }
 
-$('#btn-settings').addEventListener('click', openSettings);
+$('#temperature').addEventListener('input', e => {
+  $('#temp-display').textContent = e.target.value;
+});
+
+$('#btn-settings').addEventListener('click', () => { openSettings(); closeSidebar(); });
+$('#btn-settings2').addEventListener('click', openSettings);
 
 $('#btn-cancel').addEventListener('click', () => {
   $('#settings-modal').classList.remove('open');
@@ -895,21 +1479,46 @@ $('#btn-save').addEventListener('click', () => {
   loadModels();
 });
 
-$('#btn-clear-history').addEventListener('click', () => {
-  if (!confirm('Hele chatgeschiedenis wissen?')) return;
-  messages = [];
-  saveHistory();
-  chat.querySelectorAll('.msg').forEach(m => m.remove());
-  welcome.style.display = '';
+$('#btn-clear-all').addEventListener('click', () => {
+  if (!confirm('ALLE gesprekken en instellingen wissen?')) return;
+  conversations = {};
+  saveConversations();
+  activeConvId = null;
+  setSetting('active', '');
   $('#settings-modal').classList.remove('open');
+  newConv();
 });
 
 $('#settings-modal').addEventListener('click', e => {
   if (e.target === e.currentTarget) $('#settings-modal').classList.remove('open');
 });
 
-// Init
-loadHistory();
+// ── Keyboard shortcuts ──
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === 'n') { e.preventDefault(); newConv(); }
+  }
+  if (e.key === 'Escape') {
+    $$('.modal-overlay.open').forEach(m => m.classList.remove('open'));
+    closeSidebar();
+  }
+});
+
+// ── Init ──
+loadConversations();
+initPresets();
+
+if (Object.keys(conversations).length) {
+  const saved = getSetting('active', '');
+  const id = (saved && conversations[saved]) ? saved : Object.values(conversations).sort((a, b) => b.updated - a.updated)[0]?.id;
+  if (id) switchConv(id);
+  else newConv();
+} else {
+  newConv();
+}
+
+renderConvList();
+
 if (apiKey()) {
   loadModels();
 } else {

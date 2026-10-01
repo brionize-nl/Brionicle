@@ -1,4 +1,4 @@
-const CACHE = 'ollama-pwa-v1';
+const CACHE = 'ollama-pwa-v2';
 const STATIC = ['/', '/index.html', '/manifest.json', '/icon-192.svg', '/icon-512.svg'];
 
 self.addEventListener('install', e => {
