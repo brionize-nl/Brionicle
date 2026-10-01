@@ -153,7 +153,72 @@ if command -v ollama &> /dev/null; then
 fi
 
 echo ""
-echo ">> STAP 10: Ollama tunen voor ARM..."
+echo ">> STAP 10: Syncthing installeren (VPS <-> Asus sync)..."
+if ! command -v syncthing &> /dev/null; then
+    sudo apt-get install -y -qq syncthing
+    echo "   ✓ Syncthing geinstalleerd"
+else
+    echo "   - Syncthing al aanwezig"
+fi
+
+# Syncthing als user-service draaien
+mkdir -p "$HOME/.config/syncthing"
+mkdir -p "$HOME/.config/systemd/user"
+cat > "$HOME/.config/systemd/user/syncthing.service" << 'SYNCUNIT'
+[Unit]
+Description=Syncthing - File Synchronization
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/syncthing serve --no-browser --no-restart
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=default.target
+SYNCUNIT
+
+systemctl --user daemon-reload
+systemctl --user enable syncthing
+systemctl --user start syncthing
+echo "   ✓ Syncthing draait als service"
+echo "   Web-UI: http://localhost:8384 (via SSH tunnel)"
+echo "   Sync map: configureer via web-UI na setup"
+
+echo ""
+echo ">> STAP 11: MusicGen voorbereiden (AI muziekgeneratie)..."
+VENV="$HOME/docu-env"
+if [ -d "$VENV" ]; then
+    "$VENV/bin/pip" install -q transformers torch torchaudio 2>/dev/null && \
+        echo "   ✓ MusicGen dependencies geinstalleerd (torch + transformers)" || \
+        echo "   ! MusicGen install mislukt (kan later handmatig)"
+fi
+
+# Muziekbibliotheek map aanmaken
+MUSIC_DIR="$HOME/Brionicle/tools/music"
+mkdir -p "$MUSIC_DIR"
+cat > "$MUSIC_DIR/README.txt" << 'MUSICINFO'
+Brionicle Documentary Music Library
+====================================
+Plaats hier royalty-free tracks per sfeer:
+  dramatic.mp3    - mysteries, tempels, ridders
+  peaceful.mp3    - natuur, kastelen, landschappen
+  epic.mp3        - grote ontdekkingen, revelaties
+  dark.mp3        - catacomben, spooklocaties
+  medieval.mp3    - middeleeuws, kerken, kloosters
+
+Gratis bronnen:
+  - pixabay.com/music (geen account nodig)
+  - freemusicarchive.org
+  - incompetech.com (Kevin MacLeod)
+
+MusicGen (AI) genereert ook unieke tracks via:
+  python3 ~/Brionicle/tools/generate-music.py "dramatic orchestral"
+MUSICINFO
+echo "   ✓ Muziekbibliotheek map aangemaakt"
+
+echo ""
+echo ">> STAP 12: Ollama tunen voor ARM..."
 cat > "$HOME/.ollama_env" << 'OLLAMA_ENV'
 # Ollama optimalisatie voor Oracle ARM (2 cores, 12GB)
 OLLAMA_NUM_PARALLEL=1
@@ -190,12 +255,13 @@ echo "  Disk vrij:  $(df -h / | awk 'NR==2 {print $4}')"
 echo ""
 echo "  --- ACTIEVE AI SERVICES ---"
 systemctl is-active ollama &>/dev/null && echo "  Ollama:     ✓ actief" || echo "  Ollama:     ✗ inactief"
+systemctl --user is-active syncthing &>/dev/null && echo "  Syncthing:  ✓ actief" || echo "  Syncthing:  ✗ inactief"
 echo ""
 echo "  --- GEINSTALLEERDE MODELLEN ---"
 ollama list 2>/dev/null || echo "  (ollama niet bereikbaar)"
 echo ""
 echo "  --- PYTHON TOOLS ---"
-"$HOME/docu-env/bin/pip" list 2>/dev/null | grep -E "duckduckgo|trafilatura|yt-dlp|piper" || true
+"$HOME/docu-env/bin/pip" list 2>/dev/null | grep -E "duckduckgo|trafilatura|yt-dlp|piper|torch|transformers" || true
 echo ""
 echo "==========================================="
 echo "  VPS is nu klaar voor AI werk"
