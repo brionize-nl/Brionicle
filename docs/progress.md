@@ -1,6 +1,6 @@
 # Progress — Brionicle
 
-Laatst bijgewerkt: 2026-10-03
+Laatst bijgewerkt: 2026-10-03 (bugfixes + docs cleanup)
 
 ---
 
@@ -48,6 +48,12 @@ Laatst bijgewerkt: 2026-10-03
 |------|--------|
 | Radio.toggle gebruikte onbestaand `event` object | Gefixt |
 | ISS click handler toonde verouderde positie | Gefixt |
+| castles.js/mysteries.js: `L.layerGroup()` crashte vóór Leaflet load | Gefixt (2026-10-03) |
+| castles.js/mysteries.js: unguarded `load()` crashte `App.init()` | Gefixt (2026-10-03) |
+| castles.js: `fetchWiki` zonder null guard | Gefixt (2026-10-03) |
+| weather.js: `data.current` zonder null check | Gefixt (2026-10-03) |
+| cameras.js: timelapse fetch zonder `res.ok` check | Gefixt (2026-10-03) |
+| flights.js: race condition bij concurrent `update()` calls | Gefixt (2026-10-03) |
 
 ## Nog te doen
 
