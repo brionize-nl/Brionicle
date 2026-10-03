@@ -28,6 +28,7 @@ const Weather = {
         const res = await fetch(url);
         if (!res.ok) throw new Error('Weer ophalen mislukt');
         const data = await res.json();
+        if (!data.current) throw new Error('Geen weerdata');
         const c = data.current;
         return {
             temperature: Math.round(c.temperature_2m),

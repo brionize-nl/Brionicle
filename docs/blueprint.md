@@ -1,255 +1,139 @@
 # Blueprint — Brionicle
 
-Technische blauwdruk. Alle bronnen zijn gevalideerd en besproken in de sparfase.
+Technische blauwdruk. Bijgewerkt: 2026-10-03.
 
 ---
 
 ## Architectuur
 
 ```
-Gebruiker (browser/PWA)
-    |
-    ├── Leaflet 2D kaart (standaard)
-    ├── Three.js 3D globe (optioneel toggle)
-    |
-    ├── Eigen JSON data (in repo)
-    |   ├── festivals.json
-    |   ├── monuments.json (kastelen, musea, natuur)
-    |   ├── telescopes.json
-    |   ├── youtube-channels.json
-    |   └── ufo-sightings.json (NUFORC dataset)
-    |
-    ├── Publieke APIs (geen keys, on-demand)
-    |   ├── Open-Meteo (weer)
-    |   ├── USGS (aardbevingen)
-    |   ├── Radio Browser (radiostations)
-    |   ├── Wikipedia / Wikimedia (info + foto's)
-    |   ├── sunrisesunset.io of SunCalc (golden hour)
-    |   ├── NOAA (aurora forecast)
-    |   ├── open-notify.org (ISS positie)
-    |   ├── OSRM (route berekening)
-    |   └── YouTube RSS feeds (video check)
-    |
-    ├── Camera bronnen (JPEG snapshots, on-demand)
-    |   ├── TrafficVision.Live (155.000+ wereldwijd)
-    |   ├── Rijkswaterstaat API (NL snelwegen)
-    |   ├── OpenWebcamDB (1.925 streams, 59 landen)
-    |   ├── webcam-autoroute.eu (FR/BE/NL/DE/CH/LU/ES)
-    |   └── Windy Webcams (free tier, lage res)
-    |
-    ├── HLS streams (in-browser via HLS.js)
-    |   ├── NASA ISS streams
-    |   └── Sommige webcams
-    |
-    └── Cloudflare Worker (image proxy, alleen bij CORS)
+Browser (Leaflet + HLS.js)
+    ↓
+Cloudflare Pages Functions (serverless proxy)
+    ↓
+Externe gratis API's (RWS, ADS-B, Open-Meteo, adsbdb, sunrisesunset.io)
+    ↓
+Cloudflare R2 bucket (brionicle-live) — camera live/timelapse opslag
+    ↓
+Oracle VPS (84.235.182.106) — desktop screenshot service voor cameras
 ```
 
-**Hosting**: Cloudflare Pages (frontend) + Cloudflare Worker (proxy)
-**Code**: GitHub repository
-**Health checks**: GitHub Actions (periodiek, camera-bronnen testen)
+**Hosting**: Cloudflare Pages (frontend + serverless functions)
+**Opslag**: Cloudflare R2 (camera screenshots, timelapse)
+**VPS**: Oracle ARM64 gratis tier (screenshot service)
+**Code**: GitHub `brionize-nl/Brionicle`
 
 ---
 
-## Databronnen — gedetailleerd
+## Actieve features (3)
 
-### Camera's
-
-| Bron | Type | URL/API | Key? | CORS? | Opmerkingen |
-|------|------|---------|------|-------|-------------|
-| TrafficVision.Live | JPEG snapshot | trafficvision.live | Nee | Via <img> tag | 155.000+ cameras, 130+ landen |
-| Rijkswaterstaat | JPEG snapshot | api.rwsverkeersinfo.nl/api/cameras | Nee | Via <img> tag | NL snelwegen, HD |
-| OpenWebcamDB | Mix (JPEG/HLS) | openwebcamdb.org API | Nee (25 req/dag) | Via <img> tag | 1.925 streams, 59 landen |
-| webcam-autoroute.eu | JPEG snapshot | Geen API, scrapen of handmatig | Nee | Via <img> tag | FR/BE/NL/DE/CH/LU/ES snelwegen |
-| Windy Webcams | JPEG (lage res) | api.windy.com/webcams | Nee (free tier) | Via <img> tag | Token verloopt na 10 min |
-
-**CORS oplossing**: JPEG snapshots via `<img>` tag → geen CORS probleem. Alleen als we pixel-data nodig hebben (canvas) → Cloudflare Worker proxy.
-
-**RTSP**: wordt niet ondersteund. Niet nodig — vrijwel alle publieke bronnen zijn JPEG of HLS.
-
-### Weer
-
+### 1. Verkeerscamera's
 | Eigenschap | Waarde |
 |------------|--------|
-| Bron | Open-Meteo |
-| URL | api.open-meteo.com/v1/forecast |
-| Parameters | latitude, longitude, current_weather=true |
-| Key | Nee |
-| Limiet | 10.000 calls/dag |
-| Geeft | Temperatuur, windsnelheid, windrichting, weercode |
+| Bron | RWS API (`api.rwsverkeersinfo.nl/api/cameras`) |
+| Frontend | `js/cameras.js` (~486 regels) |
+| Functies | Live HLS stream, snapshot, timelapse met slider/play/speed |
+| VPS | Oracle ARM64 maakt desktop screenshots, slaat op in R2 |
+| R2 paden | `live/{id}.jpg`, `timelapse/{id}/`, `streams/{id}.json`, `control.json` |
+| Proxy | `camera-image.js` (snapshot), `camera-stream.js` (HLS), `camera-live.js` (R2) |
 
-### Golden hour / zon
-
+### 2. Vliegtuigradar
 | Eigenschap | Waarde |
 |------------|--------|
-| Optie 1 | SunCalc JavaScript library (in-browser, geen API call) |
-| Optie 2 | sunrisesunset.io/api (geen key, geen limiet) |
-| Geeft | Zonsopgang, zonsondergang, golden hour begin/eind, blue hour, twilight, maanfase |
-| Voorkeur | SunCalc (nul requests, werkt offline) |
+| Bron | ADS-B.lol (`api.adsb.lol/v2/`) + adsbdb.com (routes) |
+| Frontend | `js/flights.js` (~400 regels) |
+| Functies | SVG markers per hoogte, classificatie (militair/lijnvlucht/heli/drone), route A→B, volgen met auto-pan |
+| Proxy | `flights.js` (ADS-B), `flight-route.js` (routes) |
+| Prefetch | Brummen-Amersfoort regio voor snelle eerste lading |
 
-### Aardbevingen
-
+### 3. Weer bij klik
 | Eigenschap | Waarde |
 |------------|--------|
-| Bron | USGS |
-| URL | earthquake.usgs.gov/earthquakes/feed/v1.0/summary/ |
-| Feeds | all_hour.geojson, all_day.geojson, all_week.geojson |
-| Key | Nee |
-| Limiet | Geen |
-| Geeft | Magnitude, locatie (lat/lon), diepte, tijd, tsunami-waarschuwing |
-| Update | Elke 5 minuten server-side |
-
-### Radio
-
-| Eigenschap | Waarde |
-|------------|--------|
-| Bron | Radio Browser API |
-| URL | de1.api.radio-browser.info (meerdere mirrors) |
-| GPS filter | /stations/bycoordinate/{lat}/{lon}/{radius} |
-| Key | Nee |
-| Limiet | Geen |
-| Geeft | Naam, land, taal, codec, bitrate, genre |
-| Afspelen | Via <audio> tag in de browser |
-
-### ISS
-
-| Eigenschap | Waarde |
-|------------|--------|
-| Positie | api.open-notify.org/iss-now.json (real-time lat/lon) |
-| Video | NASA HLS: nasa-i.akamaihd.net/hls/live/253565/NASA-NTV1-Public/master.m3u8 |
-| Kanalen | NTV1, NTV2, NTV3 |
-| Afspelen | HLS.js in de browser |
-| Let op | Streams gaan offline bij Loss of Signal — dat is normaal |
-
-### Aurora / Noorderlicht
-
-| Eigenschap | Waarde |
-|------------|--------|
-| Bron | NOAA Space Weather Prediction Center |
-| URL | swpc.noaa.gov/products/aurora-30-minute-forecast |
-| Data | Aurora kans-kaart (JSON/afbeelding), Kp-index |
-| Key | Nee |
-| Limiet | Geen |
-| Tonen bij | Noordelijke locaties (>55° latitude) |
-
-### Locatie info
-
-| Eigenschap | Waarde |
-|------------|--------|
-| Info | Wikipedia API (gratis, geen key) |
-| Foto's | Wikimedia Commons (gratis, geen key) |
-| Tonen | Altijd als fallback — de "offline" laag die altijd werkt |
-
-### YouTube / Events
-
-| Eigenschap | Waarde |
-|------------|--------|
-| Embed | youtube.com/embed/VIDEO_ID (gratis, onbeperkt) |
-| Video ID vinden | YouTube RSS feed: youtube.com/feeds/videos.xml?channel_id=ID |
-| Live check | Kanaal /live URL check (gratis, geen API) |
-| API | YouTube Data API v3 alleen als backup (100 searches/dag bij 10.000 quota) |
-| Opzet | Gecureerde lijst van kanaal-IDs in youtube-channels.json |
-
-**Patroon**: Entry in JSON is permanent. Voor event: info. Tijdens: livestream als beschikbaar. Na: officiële video's/aftermovie.
-
-### UFO meldingen
-
-| Eigenschap | Waarde |
-|------------|--------|
-| Bron | NUFORC dataset (via GitHub/Kaggle) |
-| Data | 100.000+ meldingen met lat/lon coördinaten |
-| Formaat | CSV/JSON, eenmalige download, opslaan in repo |
-| Key | Nee |
-| Tonen | "X UFO meldingen binnen Y km van deze plek" |
-
-### Telescopen
-
-| Eigenschap | Waarde |
-|------------|--------|
-| ESO Paranal | eso.org/public/outreach/webcams/ — 24/7 webcam |
-| VLA New Mexico | public.nrao.edu/vla-webcam/ — JPEG elke 15 sec |
-| Virtual Telescope | virtualtelescope.eu/webtv/ — YouTube livestreams |
-| McDonald Observatory | YouTube livestreams |
-| Royal Observatory | YouTube livestreams |
-| Space Telescope Live | spacetelescopelive.org — Hubble/Webb real-time target |
-
-### Route berekening (roadtrip)
-
-| Eigenschap | Waarde |
-|------------|--------|
-| Bron | OSRM (Open Source Routing Machine) |
-| Gebaseerd op | OpenStreetMap data |
-| Key | Nee |
-| Hoe | Bereken route → krijg lijn van coördinaten → zoek camera's/pins binnen X km van de lijn |
+| Bron | Open-Meteo (weer) + sunrisesunset.io (zontijden) |
+| Frontend | `js/weather.js` (~73 regels) |
+| Functies | WMO-weercode met emoji, temperatuur, zonsopgang/ondergang/golden hour |
+| Proxy | Geen nodig — beide API's hebben CORS headers |
 
 ---
 
-## Universeel pin-patroon
+## Databronnen
 
-Alles in Brionicle is een pin op de kaart. Het type verschilt, het patroon is altijd hetzelfde:
+| Bron | Type | Key? | Gebruikt door |
+|------|------|------|---------------|
+| RWS API | Camera JPEG/HLS | Nee | Verkeerscamera's |
+| ADS-B.lol | Vliegtuigdata JSON | Nee | Vliegtuigradar |
+| adsbdb.com | Vliegroutes JSON | Nee | Vliegtuigradar |
+| Open-Meteo | Weer JSON | Nee | Weer bij klik |
+| sunrisesunset.io | Zontijden JSON | Nee | Weer bij klik |
+
+---
+
+## Bestandsstructuur
 
 ```
-Pin aanklikken
-    ├── Info tonen (altijd beschikbaar)
-    |   ├── Naam, type, locatie
-    |   ├── Wikipedia info + foto's
-    |   └── Weer (Open-Meteo)
-    |
-    ├── Contextafhankelijke data
-    |   ├── Golden hour / zon tijden
-    |   ├── Nabije radiostations
-    |   ├── Nabije camera's
-    |   ├── Aardbevingen (als seismisch actief)
-    |   └── Aurora kans (als noordelijk)
-    |
-    └── Media (on-demand)
-        ├── Camera beeld (JPEG/HLS)
-        ├── YouTube stream/video
-        └── Audio (radio)
+js/
+  app.js          — Hoofd-app: kaart, panel, lagen, locatie
+  cameras.js      — Camera module
+  flights.js      — Vliegtuig module
+  weather.js      — Weer module
+
+functions/api/
+  cameras.js      — RWS camera lijst ophalen
+  camera-image.js — Snapshot proxy (met 5min cache)
+  camera-stream.js — HLS manifest proxy + rewriting
+  camera-live.js  — R2 live beeld ophalen
+  camera-control.js — VPS control.json lezen/schrijven
+  timelapse.js    — R2 timelapse frames
+  flights.js      — ADS-B proxy met validatie
+  flight-route.js — adsbdb.com route proxy
+
+css/style.css     — Donker thema, responsive
+index.html        — Single page app
+sw.js             — Service worker (cache: brionicle-v3)
+manifest.json     — PWA manifest
 ```
 
 ---
 
-## PWA en mobiel
+## Infra
 
-| Platform | Standaard | Optie |
-|----------|-----------|-------|
-| Desktop | Three.js 3D globe | Toggle naar 2D |
-| Mobiel (krachtig, bijv. S22 Ultra 12GB) | Leaflet 2D | Toggle naar 3D |
-| Mobiel (oud/zwak) | Leaflet 2D | Geen 3D optie |
+| Dienst | Doel | Kosten |
+|--------|------|--------|
+| Cloudflare Pages | Frontend + Functions | Gratis |
+| Cloudflare R2 | Camera opslag (`brionicle-live`) | Gratis tier |
+| Oracle Cloud VPS | Desktop screenshots | Gratis tier (ARM64) |
+| ADS-B.lol | Vliegtuigdata | Gratis, geen key |
+| Open-Meteo | Weerdata | Gratis, geen key |
+| adsbdb.com | Vliegroutes | Gratis, geen key |
+| RWS API | Camera's | Gratis, geen key |
+| sunrisesunset.io | Zontijden | Gratis, geen key |
 
-Detectie: check GPU/geheugen capabilities → toon/verberg 3D toggle.
-
----
-
-## Roadtrip camera-dichtheid
-
-Route Amsterdam → Parijs (~500km, A4 → A16 → E19 → A1):
-
-| Land | Bron | Camera's |
-|------|------|----------|
-| Nederland | TrafficVision.Live | 250+ landelijk, 800+ Zuid-Holland |
-| Nederland | Rijkswaterstaat | HD snelwegcamera's |
-| België | TrafficVision.Live | 500+ Brussel, 1.500+ Luik |
-| België | opencctv.org | 420 totaal |
-| Frankrijk | SANEF | Knooppunten en tolstations |
-
-Conclusie: meer dan genoeg dekking op West-Europese snelwegen.
+**Cloudflare Account ID:** `71fc493155b071bebcc185ea1c208966`
+**VPS IP:** `84.235.182.106` (hostname: `n8n-vm`, Ubuntu 24.04.5)
+**VPS Brionicle pad:** `~/Brionicle`
 
 ---
 
-## Cloudflare Worker proxy
+## Beveiliging
 
-Alleen nodig wanneer een camera-bron CORS blokkeert en we pixel-data nodig hebben (canvas manipulatie). Voor gewone `<img>` tags is geen proxy nodig.
-
-Gratis tier: 100.000 requests/dag. Met on-demand architectuur (alleen bij klik) ruim voldoende voor persoonlijk gebruik.
+- R2 API keys en Cloudflare tokens NOOIT in code — alleen via Cloudflare dashboard
+- `desktop/config.json` staat in `.gitignore`
+- R2 bucket toegang via Pages Function binding (`context.env.LIVE_BUCKET`)
+- Proxy functies valideren alle input parameters
+- ALLOWED_HOSTS whitelist in camera-stream.js
 
 ---
 
-## GitHub Actions health checks
+## Verwijderde features
 
-Periodiek (bijv. dagelijks) een script draaien dat:
-1. Elke camera-bron URL pingt
-2. Elke API endpoint checkt
-3. Bij falen: GitHub notification / email
+Deze features zijn bewust verwijderd (waren gebouwd maar niet nodig/werkend):
+- ISS tracker, UFO meldingen, Pins, Roadtrip, Windy, Wikipedia, Radio, Aurora
+- Aardbevingen (USGS), Regenradar (RainViewer)
+- Alle bijbehorende data-bestanden (festivals.json, monuments.json, etc.)
 
-Gratis: 2.000 minuten/maand.
+---
+
+## DELPHI (apart project)
+
+Ollama PWA is verhuisd naar eigen repo: `brionize-nl/DELPHI`
+Draait op `ollama.brionize.nl` — zie die repo voor documentatie.
