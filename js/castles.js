@@ -1,15 +1,19 @@
 const Castles = {
     data: [],
-    markers: L.layerGroup(),
+    markers: null,
     map: null,
 
     init(map) {
         this.map = map;
+        this.markers = L.layerGroup();
     },
 
     async load() {
-        const res = await fetch('data/castles.json');
-        this.data = await res.json();
+        try {
+            const res = await fetch('data/castles.json');
+            if (!res.ok) return [];
+            this.data = await res.json();
+        } catch { this.data = []; }
         return this.data;
     },
 
@@ -33,6 +37,7 @@ const Castles = {
     },
 
     hide() {
+        if (!this.markers) return;
         this.markers.clearLayers();
         if (this.map) this.map.removeLayer(this.markers);
     },
@@ -76,6 +81,7 @@ const Castles = {
     },
 
     async fetchWiki(pageName) {
+        if (!pageName) return null;
         try {
             const res = await fetch(`https://nl.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(pageName)}`);
             if (!res.ok) return null;

@@ -9,6 +9,7 @@ const Flights = {
     _counterEl: null,
     _errorTimer: null,
     _routeCache: new Map(),
+    _updateController: null,
 
     init(map) {
         this.map = map;
@@ -183,6 +184,9 @@ const Flights = {
     },
 
     async update() {
+        if (this._updateController) this._updateController.abort();
+        this._updateController = new AbortController();
+        const signal = this._updateController.signal;
         try {
             const center = this.map.getCenter();
             const bounds = this.map.getBounds();
@@ -191,7 +195,7 @@ const Flights = {
             const distNm = Math.min(Math.round(distKm / 1.852), 250);
 
             const url = `/api/flights?lat=${center.lat.toFixed(4)}&lon=${center.lng.toFixed(4)}&dist=${distNm}`;
-            const res = await fetch(url);
+            const res = await fetch(url, { signal });
             if (!res.ok) return;
             const data = await res.json();
             if (!data.ac) return;
@@ -226,6 +230,7 @@ const Flights = {
             }
 
         } catch (e) {
+            if (e.name === 'AbortError') return;
             console.warn('Flights update:', e.message);
             this._showError('Vliegtuigdata niet beschikbaar');
         }

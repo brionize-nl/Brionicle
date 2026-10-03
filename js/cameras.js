@@ -325,6 +325,7 @@ const Cameras = {
 
         try {
             const res = await fetch(`/api/timelapse?id=${cam.id}&action=list`);
+            if (!res.ok) throw new Error('Timelapse ophalen mislukt');
             const data = await res.json();
 
             if (!data.frames || data.frames.length === 0) {
